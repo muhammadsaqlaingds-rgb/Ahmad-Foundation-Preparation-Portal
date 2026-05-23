@@ -155,6 +155,15 @@ export default function UserDashboardPage() {
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                                     </svg>
                                 </Link>
+                                <Link
+                                    href="/user/notes"
+                                    className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#0f4c81] to-[#1e6f9f] px-6 py-3 text-sm font-black text-white shadow-lg shadow-[#0f4c81]/20 hover:brightness-110 transition-all"
+                                >
+                                    Browse Class Notes
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                </Link>
                                 <span className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-xs text-slate-400">
                                     <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
                                     Secure timed exams

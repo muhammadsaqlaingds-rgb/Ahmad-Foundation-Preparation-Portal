@@ -23,3 +23,29 @@ export async function GET() {
         return NextResponse.json({ error: "Failed to load payment requests." }, { status: 500 });
     }
 }
+
+export async function PUT(req: Request) {
+    try {
+        await connectToDatabase();
+        const body = await req.json();
+        const { accessId, status } = body as { accessId?: string; status?: "approved" | "rejected" };
+
+        if (!accessId || !status || !["approved", "rejected"].includes(status)) {
+            return NextResponse.json({ error: "accessId and valid status are required." }, { status: 400 });
+        }
+
+        const access = await ClassAccess.findById(accessId);
+        if (!access) {
+            return NextResponse.json({ error: "Access request not found." }, { status: 404 });
+        }
+
+        access.status = status;
+        await access.save();
+
+        return NextResponse.json({ success: true, message: `Access request ${status} successfully.`, data: access });
+    } catch (err) {
+        console.error("Admin approve payment request error:", err);
+        return NextResponse.json({ error: "Failed to update payment request." }, { status: 500 });
+    }
+}
+
