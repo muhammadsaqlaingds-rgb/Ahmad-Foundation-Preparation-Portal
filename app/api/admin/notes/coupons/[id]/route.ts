@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
 import NoteCoupon from "@/models/NoteCoupon";
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
-        const { id } = params;
+        const { id } = await params;
         await connectToDatabase();
         const coupon = await NoteCoupon.findById(id);
         if (!coupon) {
@@ -22,9 +22,9 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     }
 }
 
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
-        const { id } = params;
+        const { id } = await params;
         await connectToDatabase();
         const coupon = await NoteCoupon.findByIdAndDelete(id);
         if (!coupon) {
