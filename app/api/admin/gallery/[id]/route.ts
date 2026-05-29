@@ -58,7 +58,7 @@ export async function PUT(req: Request, { params }: Params) {
                 const maxOrderDoc = await GalleryAsset.findOne({ featuredOnHome: true })
                     .sort({ orderOnHome: -1 })
                     .lean();
-                existing.orderOnHome = (maxOrderDoc?.orderOnHome ?? 0) + 1;
+                existing.orderOnHome = ((maxOrderDoc as any)?.orderOnHome ?? 0) + 1;
             }
 
             if (!featuredOnHome) {

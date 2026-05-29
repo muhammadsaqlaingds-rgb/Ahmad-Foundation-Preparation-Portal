@@ -76,7 +76,7 @@ export async function POST(req: Request) {
             const maxOrderDoc = await GalleryAsset.findOne({ featuredOnHome: true })
                 .sort({ orderOnHome: -1 })
                 .lean();
-            orderOnHome = (maxOrderDoc?.orderOnHome ?? 0) + 1;
+            orderOnHome = ((maxOrderDoc as any)?.orderOnHome ?? 0) + 1;
         }
 
         const created = await GalleryAsset.create({

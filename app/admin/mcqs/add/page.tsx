@@ -646,7 +646,7 @@ export default function AddMcqsPage() {
                         <div className="bg-slate-50/50 px-6 py-4 border-t border-slate-100">
                             <button
                                 type="submit"
-                                disabled={submitting || !bulkJson.trim() || (bulkValidationMessage && !bulkValidationMessage.startsWith("✓"))}
+                                disabled={submitting || !bulkJson.trim() || !!(bulkValidationMessage && !bulkValidationMessage.startsWith("✓"))}
                                 className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 text-sm font-semibold text-white shadow-md shadow-indigo-200 hover:from-indigo-700 hover:to-indigo-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {submitting ? (
