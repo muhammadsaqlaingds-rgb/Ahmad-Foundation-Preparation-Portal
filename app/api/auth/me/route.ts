@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 
 export async function GET() {
     try {
-        const user = await getCurrentUser();
+        const user = await getCurrentUser() as any;
         if (!user) {
             return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
         }

@@ -89,7 +89,7 @@ export async function getCurrentUser() {
 
         await connectToDatabase();
         const user = await User.findOne({ _id: payload.userId, isDeleted: { $ne: true } }).lean();
-        return user;
+        return user as any;
     } catch (err) {
         console.error("getCurrentUser error:", err);
         return null;
