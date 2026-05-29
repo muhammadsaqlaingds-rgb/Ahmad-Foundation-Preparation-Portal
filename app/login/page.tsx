@@ -61,7 +61,8 @@ export default function StudentLoginPage() {
             {/* Glassmorphic Login Card */}
             <div className="w-full max-w-md bg-white/5 backdrop-blur-2xl border border-white/10 rounded-2xl p-8 shadow-2xl relative z-10">
                 {/* Logo and Headings */}
-                <div className="text-center mb-6">
+                <div className="text-center mb-6 flex flex-col items-center">
+                    <img src="/logo.jpeg" alt="Logo" className="w-16 h-16 rounded-2xl object-cover shadow-lg border border-white/10 mb-4" />
                     <h1 className="text-3xl font-black tracking-tight mb-2">
                         <span className="bg-gradient-to-r from-white via-slate-200 to-[#d4af37] bg-clip-text text-transparent">
                             Student Sign In

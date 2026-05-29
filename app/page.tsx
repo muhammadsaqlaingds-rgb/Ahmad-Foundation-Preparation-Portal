@@ -45,13 +45,16 @@ export default function Home() {
 
             {/* Header */}
             <header className="relative z-10 max-w-7xl mx-auto w-full px-6 py-6 flex items-center justify-between border-b border-white/5 bg-slate-950/20 backdrop-blur-md">
-                <div className="flex items-center gap-2">
-                    <span className="text-xl font-black bg-gradient-to-r from-white via-slate-200 to-[#d4af37] bg-clip-text text-transparent tracking-tight">
-                        Ahmad Foundation
-                    </span>
-                    <span className="text-[10px] uppercase font-bold tracking-widest text-[#d4af37] border border-[#d4af37]/30 px-2 py-0.5 rounded bg-[#d4af37]/5">
-                        Tuition Portal
-                    </span>
+                <div className="flex items-center gap-3">
+                    <img src="/logo.jpeg" alt="Logo" className="w-14 h-14 rounded-2xl object-cover shadow-md border border-white/10" />
+                    <div className="flex items-center gap-2">
+                        <span className="text-xl font-black bg-gradient-to-r from-white via-slate-200 to-[#d4af37] bg-clip-text text-transparent tracking-tight">
+                            Ahmad Foundation
+                        </span>
+                        <span className="text-[10px] uppercase font-bold tracking-widest text-[#d4af37] border border-[#d4af37]/30 px-2 py-0.5 rounded bg-[#d4af37]/5">
+                            Tuition Portal
+                        </span>
+                    </div>
                 </div>
                 
                 <div className="flex items-center gap-4">

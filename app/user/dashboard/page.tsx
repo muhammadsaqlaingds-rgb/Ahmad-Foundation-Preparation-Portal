@@ -112,13 +112,16 @@ export default function UserDashboardPage() {
         <UserPortalBackground>
             <header className="border-b border-white/10 bg-slate-900/60 backdrop-blur-xl sticky top-0 z-30 relative">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-                    <Link href="/" className="flex items-center gap-2 group">
-                        <span className="text-xl font-black bg-gradient-to-r from-white via-slate-200 to-[#d4af37] bg-clip-text text-transparent">
-                            Ahmad Foundation
-                        </span>
-                        <span className="text-[10px] bg-[#0f4c81]/30 text-[#d4af37] px-2.5 py-1 rounded-full border border-[#d4af37]/25 font-bold uppercase tracking-wider">
-                            Tuition Portal
-                        </span>
+                    <Link href="/" className="flex items-center gap-3 group">
+                        <img src="/logo.jpeg" alt="Logo" className="w-14 h-14 rounded-xl object-cover border border-white/10 shadow-md" />
+                        <div className="flex items-center gap-2">
+                            <span className="text-xl font-black bg-gradient-to-r from-white via-slate-200 to-[#d4af37] bg-clip-text text-transparent">
+                                Ahmad Foundation
+                            </span>
+                            <span className="text-[10px] bg-[#0f4c81]/30 text-[#d4af37] px-2.5 py-1 rounded-full border border-[#d4af37]/25 font-bold uppercase tracking-wider">
+                                Tuition Portal
+                            </span>
+                        </div>
                     </Link>
 
                     <div className="flex items-center gap-3 sm:gap-4">

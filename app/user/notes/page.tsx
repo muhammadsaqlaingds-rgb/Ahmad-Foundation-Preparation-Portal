@@ -217,7 +217,10 @@ export default function UserNotesPage() {
                             <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#d4af37]">Tuition Portal</p>
                             <p className="text-sm font-black text-white">Class & Study Notes</p>
                         </div>
-                        <span className="text-[10px] text-slate-500 font-semibold hidden sm:block">Ahmad Foundation</span>
+                        <div className="flex items-center gap-3">
+                            <img src="/logo.jpeg" alt="Logo" className="w-14 h-14 rounded-xl object-cover border border-white/10 shadow-md" />
+                            <span className="text-[10px] text-slate-400 font-bold hidden sm:block">Ahmad Foundation</span>
+                        </div>
                     </div>
                 </header>
 

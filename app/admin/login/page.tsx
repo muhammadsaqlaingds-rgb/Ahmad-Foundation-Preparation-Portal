@@ -54,6 +54,7 @@ export default function AdminLoginPage() {
                     <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-[80px]" />
 
                     <div className="relative z-10">
+                        <img src="/logo.jpeg" alt="Logo" className="w-16 h-16 rounded-2xl object-cover shadow-lg border border-white/10 mb-6" />
                         <p className="text-xs font-bold tracking-[0.25em] text-emerald-400 uppercase mb-4">
                             Ahmad Foundation
                         </p>
@@ -81,8 +82,11 @@ export default function AdminLoginPage() {
 
                 {/* Right panel - Form */}
                 <div className="p-8 sm:p-12 flex flex-col justify-center">
-                    <div className="mb-8">
+                    <div className="mb-8 flex flex-col items-center md:items-start">
                         {/* Mobile Branding (only shows on small screens) */}
+                        <div className="md:hidden mb-4">
+                            <img src="/logo.jpeg" alt="Logo" className="w-12 h-12 rounded-xl object-cover shadow-md border border-white/10" />
+                        </div>
                         <p className="md:hidden text-xs font-bold tracking-[0.25em] text-emerald-400 uppercase mb-2 text-center">
                             Ahmad Foundation
                         </p>
