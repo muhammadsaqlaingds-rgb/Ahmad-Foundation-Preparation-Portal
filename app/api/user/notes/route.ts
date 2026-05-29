@@ -3,7 +3,6 @@ import connectToDatabase from "@/lib/mongodb";
 import Note from "@/models/Note";
 import ClassAccess from "@/models/ClassAccess";
 import NoteClassAccess from "@/models/NoteClassAccess";
-import NoteAccess from "@/models/NoteAccess";
 import { getCurrentUser } from "@/lib/auth";
 
 /** GET /api/user/notes?classId=...&subjectId=... */
@@ -21,59 +20,33 @@ export async function GET(req: Request) {
     }
 
     await connectToDatabase();
-    
-    // Check if class is unlocked for this user via ClassAccess OR NoteClassAccess
-    const classAccess = await ClassAccess.findOne({ userId: user._id, classId }).lean();
-    const hasClassAccessViaClassAccess = classAccess && (classAccess as any).status === "approved";
 
-    let hasNoteClassAccess = false;
-    if (!hasClassAccessViaClassAccess) {
-      const noteClassAccess = await NoteClassAccess.findOne({ userId: user._id, classId, status: "approved" }).lean();
-      hasNoteClassAccess = !!noteClassAccess;
+    // Check class-level access in parallel —
+    // either via ClassAccess (MCQ/test access) OR NoteClassAccess (note coupon)
+    const [classAccess, noteClassAccess] = await Promise.all([
+      ClassAccess.findOne({ userId: user._id, classId, status: "approved" }).lean(),
+      NoteClassAccess.findOne({ userId: user._id, classId, status: "approved" }).lean(),
+    ]);
+
+    const hasAccess = !!(classAccess || noteClassAccess);
+
+    if (!hasAccess) {
+      return NextResponse.json(
+        { error: "Access denied. Unlock this class first." },
+        { status: 403 }
+      );
     }
 
-    const hasClassAccess = hasClassAccessViaClassAccess || hasNoteClassAccess;
-
-    // Get all notes for this class/subject
+    // Access is class-level — return ALL notes for this subject, no per-note filtering
     const notes = await Note.find({
       classId,
       subjectId,
       isDeleted: { $ne: true },
     })
       .lean()
-      .select("_id name description imageUrl pdfUrl requiresCoupon");
+      .select("_id name description imageUrl pdfUrl");
 
-    // Get user's note access records
-    const noteAccessRecords = await NoteAccess.find({
-      userId: user._id,
-      classId,
-      subjectId,
-    }).lean();
-
-    const accessedNoteIds = new Set(noteAccessRecords.map((na: any) => na.noteId.toString()));
-
-    // Map notes with access status
-    const notesWithAccess = notes.map((note: any) => {
-      const noteId = note._id.toString();
-      const hasNoteAccess = accessedNoteIds.has(noteId);
-      
-      // User can access if:
-      // 1. They have class access AND note doesn't require coupon, OR
-      // 2. They have specific note access (via coupon)
-      const isUnlocked = (hasClassAccess && !note.requiresCoupon) || hasNoteAccess;
-
-      return {
-        _id: note._id,
-        name: note.name,
-        description: note.description,
-        imageUrl: note.imageUrl,
-        pdfUrl: note.pdfUrl,
-        requiresCoupon: note.requiresCoupon,
-        isUnlocked,
-      };
-    });
-
-    return NextResponse.json({ success: true, notes: notesWithAccess });
+    return NextResponse.json({ success: true, notes });
   } catch (err) {
     console.error("User notes GET error:", err);
     return NextResponse.json({ error: "Failed to fetch notes" }, { status: 500 });

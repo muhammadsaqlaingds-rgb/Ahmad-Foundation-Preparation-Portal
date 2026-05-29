@@ -39,6 +39,7 @@ export async function POST(req: Request) {
             subjectId,
             isUsed: false,
             isActive: true,
+            couponType: "NOTE", // Only allow NOTE coupons for note access
         });
 
         let matched: (typeof candidates)[number] | null = null;
@@ -51,7 +52,7 @@ export async function POST(req: Request) {
         }
 
         if (!matched) {
-            return NextResponse.json({ error: "Invalid or expired coupon code." }, { status: 400 });
+            return NextResponse.json({ error: "Invalid or expired NOTE coupon code. Test coupons cannot be used for notes." }, { status: 400 });
         }
 
         // Mark coupon as used

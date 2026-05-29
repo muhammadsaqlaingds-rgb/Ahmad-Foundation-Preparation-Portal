@@ -8,7 +8,7 @@ export async function POST(req: Request) {
     try {
         // 1. IP-Based Rate Limiting (Max 5 attempts per minute)
         const ip = req.headers.get("x-forwarded-for")?.split(",")[0] || "127.0.0.1";
-        const limitCheck = isRateLimited(ip, 5, 60);
+        const limitCheck = await isRateLimited(ip, 5, 60);
         if (limitCheck.limited) {
             return NextResponse.json(
                 { error: `Too many registration attempts. Please retry after ${limitCheck.retryAfter} seconds.` },

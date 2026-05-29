@@ -36,7 +36,7 @@ export async function GET(req: Request) {
             userId: user._id,
             classId,
             status: "approved",
-        });
+        }).lean();
 
         if (!access) {
             return NextResponse.json(

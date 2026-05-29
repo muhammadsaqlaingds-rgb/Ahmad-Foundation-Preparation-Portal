@@ -14,6 +14,9 @@ type ScoreSummary = {
     className: string;
     subjectName: string;
     createdAt: string;
+    realClassId?: string;
+    realSubjectId?: string;
+    realTestId?: string;
 };
 
 export default function UserResultPage() {
@@ -212,6 +215,23 @@ export default function UserResultPage() {
 
                     {/* Actions panel */}
                     <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                        {/* Retry same test */}
+                        {summary.realClassId && summary.realSubjectId && summary.realTestId && (
+                            <Link
+                                href={`/user/test?classId=${summary.realClassId}&subjectId=${summary.realSubjectId}&testId=${summary.realTestId}`}
+                                className="flex-1 relative overflow-hidden group py-3 text-slate-950 font-bold text-xs rounded-xl cursor-pointer text-center shadow-lg transition-all"
+                            >
+                                <div className="absolute inset-0 bg-gradient-to-r from-[#d4af37] to-[#b8960c]"></div>
+                                <div className="absolute inset-0 bg-gradient-to-r from-amber-300 to-[#d4af37] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                <span className="relative flex items-center justify-center gap-1.5">
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                    <span>Retry This Test</span>
+                                </span>
+                            </Link>
+                        )}
+
                         <Link
                             href="/user/test"
                             className="flex-1 relative overflow-hidden group py-3 text-white font-bold text-xs rounded-xl cursor-pointer text-center shadow-lg transition-all"
@@ -219,7 +239,7 @@ export default function UserResultPage() {
                             <div className="absolute inset-0 bg-gradient-to-r from-[#0f4c81] to-[#1e6f9f]"></div>
                             <div className="absolute inset-0 bg-gradient-to-r from-[#d4af37] to-[#b8960c] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                             <span className="relative flex items-center justify-center gap-1.5">
-                                <span>Take Another Practice Exam</span>
+                                <span>Take Another Exam</span>
                                 <svg className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                                 </svg>
@@ -230,7 +250,7 @@ export default function UserResultPage() {
                             href="/user/dashboard"
                             className="px-6 py-3 border border-white/10 text-slate-300 hover:text-white hover:border-white/20 hover:bg-white/5 text-xs font-bold rounded-xl cursor-pointer text-center transition-all"
                         >
-                            Back to Dashboard
+                            Dashboard
                         </Link>
                     </div>
                 </div>

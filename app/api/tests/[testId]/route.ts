@@ -56,6 +56,9 @@ export async function GET(
                     ? `${submission.subjectId?.name || "Unknown Subject"} (${submission.testId.name})`
                     : submission.subjectId?.name || "Unknown Subject",
                 createdAt: submission.createdAt,
+                realClassId: submission.classId?._id?.toString() || "",
+                realSubjectId: submission.subjectId?._id?.toString() || "",
+                realTestId: submission.testId?._id?.toString() || "",
             },
         });
     } catch (err) {

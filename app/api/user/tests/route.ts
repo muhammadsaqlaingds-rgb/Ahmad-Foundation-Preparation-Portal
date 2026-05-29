@@ -23,7 +23,7 @@ export async function GET(req: Request) {
         await connectToDatabase();
 
         // 1. Fetch the subject to find the classId
-        const subject = await Subject.findOne({ _id: subjectId, isDeleted: { $ne: true } });
+        const subject = await Subject.findOne({ _id: subjectId, isDeleted: { $ne: true } }).lean() as any;
         if (!subject) {
             return NextResponse.json({ error: "Subject not found." }, { status: 404 });
         }
@@ -33,7 +33,7 @@ export async function GET(req: Request) {
             userId: user._id,
             classId: subject.classId,
             status: "approved",
-        });
+        }).lean();
 
         if (!access) {
             return NextResponse.json(

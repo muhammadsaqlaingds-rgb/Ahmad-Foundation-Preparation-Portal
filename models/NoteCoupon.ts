@@ -6,6 +6,7 @@ const NoteCouponSchema = new Schema(
         classId: { type: Schema.Types.ObjectId, ref: "Class", required: true },
         subjectId: { type: Schema.Types.ObjectId, ref: "Subject", required: false, default: null },
         hashedCoupon: { type: String, required: true },
+        couponType: { type: String, enum: ["NOTE"], default: "NOTE" }, // Explicitly for NOTE only
         isUsed: { type: Boolean, default: false },
         usedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
         usedAt: { type: Date },

@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useRef, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import CouponRedeem from "@/components/CouponRedeem";
 import {
     UserPortalBackground,
@@ -36,8 +36,13 @@ type MCQ = {
 
 const WHATSAPP_GROUP_URL = process.env.NEXT_PUBLIC_WHATSAPP_GROUP_URL || "";
 
-export default function UserTestPage() {
+function UserTestPageInner() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const retryClassId = searchParams.get("classId") || "";
+    const retrySubjectId = searchParams.get("subjectId") || "";
+    const retryTestId = searchParams.get("testId") || "";
+
     const [loadingUser, setLoadingUser] = useState(true);
 
     const [classes, setClasses] = useState<ClassItem[]>([]);
@@ -54,6 +59,7 @@ export default function UserTestPage() {
     const [submittingAccess, setSubmittingAccess] = useState(false);
 
     const [testStarted, setTestStarted] = useState(false);
+    const retryAutoStartedRef = useRef(false);
     const [questions, setQuestions] = useState<MCQ[]>([]);
     const [loadingQuestions, setLoadingQuestions] = useState(false);
     const [loadingTests, setLoadingTests] = useState(false);
@@ -71,20 +77,11 @@ export default function UserTestPage() {
     const [showConfirm, setShowConfirm] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const hasPreloadedRetryRef = useRef(false);
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
     const [couponRedeemed, setCouponRedeemed] = useState(false);
 
     const limit = examMode === "standard" ? 10 : 50;
-
-    // Derived: only approved classes shown to user
-    const unlockedClasses = classes.filter((c) => c.status === "approved");
-
-    const handleCouponSuccess = async () => {
-        setCouponRedeemed(true);
-        setSuccessMsg("Coupon redeemed successfully!");
-        setError(null);
-        await loadClasses();
-    };
 
     const loadClasses = async () => {
         try {
@@ -98,20 +95,100 @@ export default function UserTestPage() {
         }
     };
 
+    const handleCouponSuccess = async () => {
+        setCouponRedeemed(true);
+        setSuccessMsg("Coupon redeemed successfully!");
+        setError(null);
+        await loadClasses();
+    };
+
+    const isRetryFlow = !!(retryClassId && retrySubjectId && retryTestId);
+
     useEffect(() => {
-        const verifySession = async () => {
+        const verifySessionAndPreload = async () => {
             try {
-                const res = await fetch("/api/auth/me");
-                if (!res.ok) { router.push("/login"); return; }
-                await loadClasses();
+                // Initialize parallel fetch promises for session verification and class loading
+                const promises: Promise<Response>[] = [
+                    fetch("/api/auth/me"),
+                    fetch("/api/user/classes")
+                ];
+
+                // If in retry flow, pre-fetch subjects and tests in parallel on mount to avoid waterfalls
+                if (isRetryFlow) {
+                    promises.push(fetch(`/api/user/subjects?classId=${retryClassId}`));
+                    promises.push(fetch(`/api/user/tests?subjectId=${retrySubjectId}`));
+                }
+
+                const results = await Promise.all(promises);
+                const meRes = results[0];
+                const classesRes = results[1];
+
+                if (!meRes.ok) {
+                    router.push("/login");
+                    return;
+                }
+
+                if (classesRes.ok) {
+                    const data = await classesRes.json();
+                    setClasses(data.classes || []);
+                }
+
+                if (isRetryFlow && results[2]?.ok) {
+                    const data = await results[2].json();
+                    setSubjects(data.subjects || []);
+                }
+
+                if (isRetryFlow && results[3]?.ok) {
+                    const data = await results[3].json();
+                    setTests(data.tests || []);
+                }
+
+                if (isRetryFlow) {
+                    hasPreloadedRetryRef.current = true;
+                }
             } catch (err) {
-                console.error("Session verification error:", err);
+                console.error("Session verification and preload error:", err);
             } finally {
                 setLoadingUser(false);
             }
         };
-        verifySession();
-    }, [router]);
+        verifySessionAndPreload();
+    }, [router, isRetryFlow, retryClassId, retrySubjectId]);
+
+    // Auto-select class/subject/test when arriving via retry link
+    useEffect(() => {
+        if (!retryClassId || loadingUser) return;
+        setSelectedClass(retryClassId);
+    }, [retryClassId, loadingUser]);
+
+    useEffect(() => {
+        if (!retrySubjectId || !subjects.length) return;
+        const sub = subjects.find((s) => s._id === retrySubjectId);
+        if (sub) setSelectedSubject(retrySubjectId);
+    }, [retrySubjectId, subjects]);
+
+    useEffect(() => {
+        if (!retryTestId || !tests.length) return;
+        const t = tests.find((t) => t._id === retryTestId);
+        if (t && t.isUnlocked !== false) setSelectedTest(retryTestId);
+    }, [retryTestId, tests]);
+
+    // Auto-START: once all 3 retry selections are applied, jump straight into the MCQs
+    useEffect(() => {
+        if (!retryClassId || !retrySubjectId || !retryTestId) return;
+        if (testStarted || retryAutoStartedRef.current) return;
+        if (
+            selectedClass === retryClassId &&
+            selectedSubject === retrySubjectId &&
+            selectedTest === retryTestId &&
+            subjects.length > 0 &&
+            tests.length > 0
+        ) {
+            retryAutoStartedRef.current = true;
+            handleStartTest();
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedClass, selectedSubject, selectedTest, subjects, tests]);
 
     const activeClass = classes.find((c) => c._id === selectedClass);
     const activeClassStatus = activeClass?.status || "locked";
@@ -119,36 +196,45 @@ export default function UserTestPage() {
     // Fetch subjects when class changes
     useEffect(() => {
         if (!selectedClass || activeClassStatus !== "approved") {
-            setSubjects([]); setSelectedSubject(""); setTests([]); setSelectedTest(""); return;
+            setSubjects([]); if (!isRetryFlow) { setSelectedSubject(""); } setTests([]); if (!isRetryFlow) { setSelectedTest(""); } return;
         }
         const fetchSubjects = async () => {
+            // Guard: If subjects are already pre-loaded during parallel init retry flow, skip fetching
+            if (isRetryFlow && selectedClass === retryClassId && hasPreloadedRetryRef.current) {
+                return;
+            }
             try {
                 setLoadingSubjects(true);
                 const res = await fetch(`/api/user/subjects?classId=${selectedClass}`);
                 if (res.ok) {
                     const data = await res.json();
                     setSubjects(data.subjects || []);
-                    setSelectedSubject(""); setTests([]); setSelectedTest("");
+                    if (!isRetryFlow) { setSelectedSubject(""); setTests([]); setSelectedTest(""); }
                 }
             } catch (err) { console.error("Error loading subjects:", err); }
             finally { setLoadingSubjects(false); }
         };
         fetchSubjects();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedClass, activeClassStatus]);
 
     // Fetch tests when subject changes
     useEffect(() => {
         if (!selectedClass || !selectedSubject || activeClassStatus !== "approved") {
-            setTests([]); setSelectedTest(""); return;
+            setTests([]); if (!isRetryFlow) { setSelectedTest(""); } return;
         }
         const fetchTestsList = async () => {
+            // Guard: If tests are already pre-loaded during parallel init retry flow, skip fetching
+            if (isRetryFlow && selectedSubject === retrySubjectId && hasPreloadedRetryRef.current) {
+                return;
+            }
             try {
                 setLoadingTests(true);
                 const res = await fetch(`/api/user/tests?subjectId=${selectedSubject}`);
                 if (res.ok) {
                     const data = await res.json();
                     setTests(data.tests || []);
-                    setSelectedTest("");
+                    if (!isRetryFlow) { setSelectedTest(""); }
                 } else {
                     const data = await res.json();
                     setError(data.error || "Failed to load tests.");
@@ -157,6 +243,7 @@ export default function UserTestPage() {
             finally { setLoadingTests(false); }
         };
         fetchTestsList();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedClass, selectedSubject, activeClassStatus]);
 
     // Exam timer
@@ -933,3 +1020,19 @@ export default function UserTestPage() {
         </UserPortalBackground>
     );
 }
+
+export default function UserTestPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+                <svg className="animate-spin h-10 w-10 text-[#d4af37]" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+            </div>
+        }>
+            <UserTestPageInner />
+        </Suspense>
+    );
+}
+

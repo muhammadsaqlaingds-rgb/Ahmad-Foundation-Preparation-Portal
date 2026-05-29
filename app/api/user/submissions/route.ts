@@ -27,10 +27,14 @@ export async function GET() {
 
         const formatted = submissions.map((sub) => ({
             id: sub._id.toString(),
+            classId: sub.classId?._id?.toString() || "",
+            subjectId: sub.subjectId?._id?.toString() || "",
+            testRefId: sub.testId?._id?.toString() || "",
             className: sub.classId?.name || "Class Deleted",
             subjectName: sub.testId?.name
                 ? `${sub.subjectId?.name || "Subject Deleted"} (${sub.testId.name})`
                 : sub.subjectId?.name || "Subject Deleted",
+            testName: sub.testId?.name || "",
             score: sub.score,
             totalQuestions: sub.totalQuestions,
             percentage: sub.percentage,

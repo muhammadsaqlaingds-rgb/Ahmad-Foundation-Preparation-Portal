@@ -7,8 +7,12 @@ import { UserPortalBackground } from "@/components/user/UserPortalUI";
 
 type TestAttempt = {
     id: string;
+    classId: string;
+    subjectId: string;
+    testRefId: string;
     className: string;
     subjectName: string;
+    testName: string;
     score: number;
     totalQuestions: number;
     percentage: number;
@@ -50,49 +54,33 @@ export default function UserDashboardPage() {
     useEffect(() => {
         const fetchDashboardData = async () => {
             try {
-                const userRes = await fetch("/api/auth/me");
-                if (!userRes.ok) {
-                    if (userRes.status === 401) {
+                const res = await fetch("/api/user/dashboard-data");
+                if (!res.ok) {
+                    if (res.status === 401) {
                         router.push("/login");
                         return;
                     }
-                    throw new Error("Failed to load user info.");
+                    throw new Error("Failed to load dashboard data.");
                 }
-                const userData = await userRes.json();
-                setUser(userData.user);
+                const data = await res.json();
+                
+                setUser(data.user || null);
+                const list: TestAttempt[] = data.submissions || [];
+                setHistory(list);
+                setTestClasses(data.testClasses || []);
+                setNoteClasses(data.noteClasses || []);
 
-                const histRes = await fetch("/api/user/submissions");
-                if (histRes.ok) {
-                    const histData = await histRes.json();
-                    const list: TestAttempt[] = histData.submissions || [];
-                    setHistory(list);
-
-                    if (list.length > 0) {
-                        const total = list.length;
-                        const avg = parseFloat(
-                            (list.reduce((sum, item) => sum + item.percentage, 0) / total).toFixed(1)
-                        );
-                        const max = Math.max(...list.map((item) => item.percentage));
-                        setStats({
-                            totalExams: total,
-                            averageScore: avg,
-                            highScore: max,
-                        });
-                    }
-                }
-
-                // Fetch test classes
-                const testClsRes = await fetch("/api/user/classes");
-                if (testClsRes.ok) {
-                    const testClsData = await testClsRes.json();
-                    setTestClasses(testClsData.classes || []);
-                }
-
-                // Fetch note classes
-                const noteClsRes = await fetch("/api/user/note-classes");
-                if (noteClsRes.ok) {
-                    const noteClsData = await noteClsRes.json();
-                    setNoteClasses(noteClsData.classes || []);
+                if (list.length > 0) {
+                    const total = list.length;
+                    const avg = parseFloat(
+                        (list.reduce((sum, item) => sum + item.percentage, 0) / total).toFixed(1)
+                    );
+                    const max = Math.max(...list.map((item) => item.percentage));
+                    setStats({
+                        totalExams: total,
+                        averageScore: avg,
+                        highScore: max,
+                    });
                 }
             } catch (err) {
                 console.error("Dashboard load error:", err);
@@ -260,7 +248,7 @@ export default function UserDashboardPage() {
                                                 <th className="pb-2 pt-2 pl-3">Subject</th>
                                                 <th className="pb-2 text-center">Score</th>
                                                 <th className="pb-2 text-center">%</th>
-                                                <th className="pb-2 pr-3 text-right">Action</th>
+                                                <th className="pb-2 pr-3 text-right">Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-white/5 font-medium">
@@ -282,12 +270,22 @@ export default function UserDashboardPage() {
                                                         </span>
                                                     </td>
                                                     <td className="py-2.5 pr-3 text-right">
-                                                        <Link
-                                                            href={`/user/result/${item.id}`}
-                                                            className="inline-block px-2.5 py-1 bg-[#0f4c81]/30 border border-[#0f4c81]/40 text-sky-200 hover:text-white rounded-lg text-[9px] font-bold transition-all"
-                                                        >
-                                                            Result
-                                                        </Link>
+                                                        <div className="flex items-center justify-end gap-1.5">
+                                                            {item.testRefId && item.classId && item.subjectId && (
+                                                                <Link
+                                                                    href={`/user/test?classId=${item.classId}&subjectId=${item.subjectId}&testId=${item.testRefId}`}
+                                                                    className="inline-block px-2.5 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:text-white hover:bg-amber-500/20 rounded-lg text-[9px] font-bold transition-all"
+                                                                >
+                                                                    Retry
+                                                                </Link>
+                                                            )}
+                                                            <Link
+                                                                href={`/user/result/${item.id}`}
+                                                                className="inline-block px-2.5 py-1 bg-[#0f4c81]/30 border border-[#0f4c81]/40 text-sky-200 hover:text-white rounded-lg text-[9px] font-bold transition-all"
+                                                            >
+                                                                Result
+                                                            </Link>
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             ))}

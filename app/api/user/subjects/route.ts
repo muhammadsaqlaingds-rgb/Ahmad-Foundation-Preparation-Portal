@@ -27,14 +27,14 @@ export async function GET(req: Request) {
             userId: user._id,
             classId,
             status: "approved",
-        });
+        }).lean();
 
         const noteClassAccess = !classAccess
             ? await NoteClassAccess.findOne({
                   userId: user._id,
                   classId,
                   status: "approved",
-              })
+              }).lean()
             : null;
 
         if (!classAccess && !noteClassAccess) {

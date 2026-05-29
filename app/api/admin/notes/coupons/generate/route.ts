@@ -37,6 +37,7 @@ export async function POST(req: Request) {
             const coupon = await NoteCoupon.create({
                 classId,
                 hashedCoupon,
+                couponType: "NOTE", // Explicitly set as NOTE coupon
                 isUsed: false,
                 isActive: true,
             });

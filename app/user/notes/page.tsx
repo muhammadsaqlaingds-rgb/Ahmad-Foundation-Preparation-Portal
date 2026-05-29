@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import NoteClassCouponRedeem from "@/components/NoteClassCouponRedeem";
-import NoteCouponRedeem from "@/components/NoteCouponRedeem";
 import {
     UserPortalBackground,
     StepsGuide,
@@ -148,22 +147,7 @@ export default function UserNotesPage() {
         await loadClasses();
     };
 
-    const handleNoteCouponSuccess = async () => {
-        setSuccessMsg("Note coupon redeemed successfully! Notes unlocked.");
-        setError(null);
-        // Reload notes to show newly unlocked ones
-        if (selectedClass && selectedSubject) {
-            try {
-                const res = await fetch(`/api/user/notes?classId=${selectedClass}&subjectId=${selectedSubject}`);
-                const data = await res.json();
-                if (res.ok && data.success) {
-                    setNotes(data.notes || []);
-                }
-            } catch (err) {
-                console.error("Error reloading notes:", err);
-            }
-        }
-    };
+
 
     const submitAccessRequest = async (method: "easypaisa" | "jazzcash" | "whatsapp", details: string) => {
         if (!selectedClass) return;
@@ -464,31 +448,7 @@ export default function UserNotesPage() {
                                         </div>
                                     )}
 
-                                    {/* ── Note Coupon Redemption (after subject selected) ── */}
-                                    {selectedClass && activeClassStatus === "approved" && selectedSubject && (
-                                        <div className="animate-fadeIn bg-slate-950/60 border border-white/10 rounded-2xl p-6 space-y-4">
-                                            <div className="flex items-start gap-3">
-                                                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#d4af37]/20 text-[#d4af37]">
-                                                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                                                    </svg>
-                                                </span>
-                                                <div>
-                                                    <h3 className="text-sm font-black text-white mb-1">
-                                                        Unlock Notes with Coupon
-                                                    </h3>
-                                                    <p className="text-slate-400 text-xs leading-relaxed">
-                                                        Have a note access coupon? Redeem it here to unlock all notes for {activeSubjectName}.
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <NoteCouponRedeem 
-                                                classId={selectedClass} 
-                                                subjectId={selectedSubject}
-                                                onSuccess={handleNoteCouponSuccess} 
-                                            />
-                                        </div>
-                                    )}
+
                                 </div>
                             </div>
 
@@ -557,8 +517,8 @@ export default function UserNotesPage() {
                                                         <h3 className="font-bold text-white text-base group-hover:text-[#d4af37] transition">
                                                             {note.name}
                                                         </h3>
-                                                        <span className="shrink-0 text-[10px] font-black text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20 uppercase tracking-wider">
-                                                            Unlocked
+                                                        <span className="shrink-0 text-[10px] font-black text-[#d4af37] bg-[#d4af37]/10 px-2.5 py-1 rounded-full border border-[#d4af37]/20 uppercase tracking-wider">
+                                                            PDF
                                                         </span>
                                                     </div>
 

@@ -87,9 +87,12 @@ export async function getCurrentUser() {
         const payload = verifyToken(cookieVal);
         if (!payload || !payload.userId) return null;
 
-        await connectToDatabase();
-        const user = await User.findOne({ _id: payload.userId, isDeleted: { $ne: true } }).lean();
-        return user as any;
+        // Directly return user details from verified cookie payload to avoid a redundant DB query per API call
+        return {
+            _id: payload.userId,
+            email: payload.email,
+            name: payload.name,
+        } as any;
     } catch (err) {
         console.error("getCurrentUser error:", err);
         return null;

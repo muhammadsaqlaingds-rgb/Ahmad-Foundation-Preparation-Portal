@@ -9,7 +9,7 @@ export async function POST(req: Request) {
     try {
         // 1. IP-Based Rate Limiting (Max 3 submissions per minute)
         const ip = req.headers.get("x-forwarded-for")?.split(",")[0] || "127.0.0.1";
-        const limitCheck = isRateLimited(ip, 3, 60);
+        const limitCheck = await isRateLimited(ip, 3, 60);
         if (limitCheck.limited) {
             return NextResponse.json(
                 { error: `Too many submission attempts. Please try again after ${limitCheck.retryAfter} seconds.` },
@@ -33,9 +33,17 @@ export async function POST(req: Request) {
 
         await connectToDatabase();
 
-        // 4. Cheat-Proof Scoring Process
-        // Fetch matching active MCQs from DB to compare correct answers on the server side ONLY
-        const mcqIds = answers.map((ans: any) => ans.mcqId);
+        // 4. Cheat-Proof Scoring Process (Deduplicated to prevent multiple grading of the same question)
+        const gradedMcqIds = new Set<string>();
+        const uniqueAnswers = answers.filter((ans: any) => {
+            if (!ans.mcqId) return false;
+            const mcqIdStr = String(ans.mcqId);
+            if (gradedMcqIds.has(mcqIdStr)) return false;
+            gradedMcqIds.add(mcqIdStr);
+            return true;
+        });
+
+        const mcqIds = uniqueAnswers.map((ans: any) => ans.mcqId);
         const dbMcqs = await MCQ.find({
             _id: { $in: mcqIds },
             classId,
@@ -56,7 +64,7 @@ export async function POST(req: Request) {
         let score = 0;
         let attemptedCount = 0;
 
-        answers.forEach((ans: any) => {
+        uniqueAnswers.forEach((ans: any) => {
             const mcqIdStr = ans.mcqId;
             const selectedOpt = ans.selectedOption;
 
@@ -84,24 +92,49 @@ export async function POST(req: Request) {
             durationSeconds = 0;
         }
 
-        // 6. Save Test Submission Record
-        const submission = await TestSubmission.create({
+        // 6. Save or Update Test Submission Record (Supports Retakes)
+        let submission;
+        const existingSubmission = await TestSubmission.findOne({
             userId: user._id,
-            classId,
-            subjectId,
             testId,
-            totalQuestions,
-            attemptedCount,
-            score,
-            percentage,
-            startTime: new Date(startTime),
-            submittedAt: new Date(endTimestamp),
-            durationSeconds,
-            answers: answers.map((ans: any) => ({
+        });
+
+        if (existingSubmission) {
+            existingSubmission.classId = classId;
+            existingSubmission.subjectId = subjectId;
+            existingSubmission.totalQuestions = totalQuestions;
+            existingSubmission.attemptedCount = attemptedCount;
+            existingSubmission.score = score;
+            existingSubmission.percentage = percentage;
+            existingSubmission.startTime = new Date(startTime);
+            existingSubmission.submittedAt = new Date(endTimestamp);
+            existingSubmission.durationSeconds = durationSeconds;
+            // Update createdAt to float the retaken attempt to the top of the student's dashboard history
+            existingSubmission.createdAt = new Date(endTimestamp);
+            existingSubmission.answers = uniqueAnswers.map((ans: any) => ({
                 mcqId: ans.mcqId,
                 selectedOption: ans.selectedOption,
-            })),
-        });
+            }));
+            submission = await existingSubmission.save();
+        } else {
+            submission = await TestSubmission.create({
+                userId: user._id,
+                classId,
+                subjectId,
+                testId,
+                totalQuestions,
+                attemptedCount,
+                score,
+                percentage,
+                startTime: new Date(startTime),
+                submittedAt: new Date(endTimestamp),
+                durationSeconds,
+                answers: uniqueAnswers.map((ans: any) => ({
+                    mcqId: ans.mcqId,
+                    selectedOption: ans.selectedOption,
+                })),
+            });
+        }
 
         return NextResponse.json({
             success: true,

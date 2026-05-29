@@ -31,6 +31,7 @@ export async function POST(req: Request) {
             const doc = await Coupon.create({
                 classId,
                 hashedCoupon,
+                couponType: "TEST", // Explicitly set as TEST coupon
                 isUsed: false,
                 isActive: true,
             });

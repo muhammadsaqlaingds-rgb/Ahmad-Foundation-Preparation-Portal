@@ -76,6 +76,7 @@ TestSubmissionSchema.index({ userId: 1 });
 TestSubmissionSchema.index({ classId: 1 });
 TestSubmissionSchema.index({ subjectId: 1 });
 TestSubmissionSchema.index({ testId: 1 });
+TestSubmissionSchema.index({ userId: 1, testId: 1 });
 
 const TestSubmission = models.TestSubmission || model("TestSubmission", TestSubmissionSchema);
 

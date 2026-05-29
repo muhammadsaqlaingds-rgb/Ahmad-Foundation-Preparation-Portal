@@ -40,6 +40,10 @@ export async function POST(req: Request) {
             classId,
             isUsed: false,
             isActive: true,
+            $or: [
+                { couponType: "TEST" },
+                { couponType: { $exists: false } }
+            ]
         });
 
         let matched: (typeof candidates)[number] | null = null;
@@ -52,7 +56,7 @@ export async function POST(req: Request) {
         }
 
         if (!matched) {
-            return NextResponse.json({ error: "Invalid or expired coupon code." }, { status: 400 });
+            return NextResponse.json({ error: "Invalid or expired TEST coupon code. Note coupons cannot be used for tests." }, { status: 400 });
         }
 
         matched.isUsed = true;

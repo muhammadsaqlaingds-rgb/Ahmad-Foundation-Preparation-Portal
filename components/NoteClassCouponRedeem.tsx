@@ -49,7 +49,7 @@ export default function NoteClassCouponRedeem({ classId, onSuccess }: NoteClassC
         <form onSubmit={handleSubmit} className="space-y-4">
             <div>
                 <label className="block text-slate-300 text-xs font-bold uppercase tracking-wider mb-2">
-                    Note Class Coupon Code
+                    Class Notes Coupon Code
                 </label>
                 <input
                     type="text"
@@ -58,7 +58,7 @@ export default function NoteClassCouponRedeem({ classId, onSuccess }: NoteClassC
                         setCode(e.target.value);
                         setError(null);
                     }}
-                    placeholder="Enter your note class coupon code"
+                    placeholder="Enter your class notes coupon code"
                     disabled={submitting}
                     className="w-full bg-slate-950 border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#0f4c81] disabled:opacity-50"
                 />
@@ -73,7 +73,7 @@ export default function NoteClassCouponRedeem({ classId, onSuccess }: NoteClassC
                 disabled={submitting || !code.trim()}
                 className="w-full py-3 bg-gradient-to-r from-[#0f4c81] to-[#1e6f9f] hover:from-[#d4af37] hover:to-[#b8960c] text-white font-bold text-sm rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             >
-                {submitting ? "Redeeming..." : "Redeem Note Class Coupon"}
+                {submitting ? "Redeeming..." : "Unlock All Class Notes"}
             </button>
         </form>
     );

@@ -308,19 +308,6 @@ export default function AdminNotesPage() {
                   />
                 </div>
 
-                <div className="flex items-center gap-3 p-4 rounded-xl bg-amber-50 border border-amber-200">
-                  <input
-                    type="checkbox"
-                    id="requiresCoupon"
-                    checked={requiresCoupon}
-                    onChange={(e) => setRequiresCoupon(e.target.checked)}
-                    className="w-4 h-4 text-amber-600 bg-white border-amber-300 rounded focus:ring-amber-500 focus:ring-2"
-                  />
-                  <label htmlFor="requiresCoupon" className="flex-1 cursor-pointer">
-                    <span className="block text-xs font-semibold text-amber-800">Requires Coupon to Access</span>
-                    <span className="block text-[10px] text-amber-600 mt-0.5">Students will need a coupon code to unlock this note, even if they have class access</span>
-                  </label>
-                </div>
 
                 {error && (
                   <div className="flex items-start gap-2 p-3 rounded-xl bg-red-50 border border-red-200">
