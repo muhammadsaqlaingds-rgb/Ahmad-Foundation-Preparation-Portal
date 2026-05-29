@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
 import Subject from "@/models/Subject";
 import ClassAccess from "@/models/ClassAccess";
+import NoteClassAccess from "@/models/NoteClassAccess";
 import { getCurrentUser } from "@/lib/auth";
 
 export async function GET(req: Request) {
@@ -21,14 +22,22 @@ export async function GET(req: Request) {
 
         await connectToDatabase();
 
-        // Security check: Check if user has approved class access
-        const access = await ClassAccess.findOne({
+        // Security check: Check if user has approved access via ClassAccess OR NoteClassAccess
+        const classAccess = await ClassAccess.findOne({
             userId: user._id,
             classId,
             status: "approved",
         });
 
-        if (!access) {
+        const noteClassAccess = !classAccess
+            ? await NoteClassAccess.findOne({
+                  userId: user._id,
+                  classId,
+                  status: "approved",
+              })
+            : null;
+
+        if (!classAccess && !noteClassAccess) {
             return NextResponse.json(
                 { error: "Access denied. This class is locked. Please unlock first." },
                 { status: 403 }

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
 import Note from "@/models/Note";
 import ClassAccess from "@/models/ClassAccess";
+import NoteClassAccess from "@/models/NoteClassAccess";
 import NoteAccess from "@/models/NoteAccess";
 import { getCurrentUser } from "@/lib/auth";
 
@@ -21,9 +22,17 @@ export async function GET(req: Request) {
 
     await connectToDatabase();
     
-    // Check if class is unlocked for this user
+    // Check if class is unlocked for this user via ClassAccess OR NoteClassAccess
     const classAccess = await ClassAccess.findOne({ userId: user._id, classId }).lean();
-    const hasClassAccess = classAccess && classAccess.status === "approved";
+    const hasClassAccessViaClassAccess = classAccess && (classAccess as any).status === "approved";
+
+    let hasNoteClassAccess = false;
+    if (!hasClassAccessViaClassAccess) {
+      const noteClassAccess = await NoteClassAccess.findOne({ userId: user._id, classId, status: "approved" }).lean();
+      hasNoteClassAccess = !!noteClassAccess;
+    }
+
+    const hasClassAccess = hasClassAccessViaClassAccess || hasNoteClassAccess;
 
     // Get all notes for this class/subject
     const notes = await Note.find({

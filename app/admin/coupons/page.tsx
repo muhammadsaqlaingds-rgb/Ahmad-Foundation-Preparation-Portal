@@ -26,7 +26,6 @@ export default function AdminCouponCodesPage() {
     const [classes, setClasses] = useState<ClassOption[]>([]);
     const [coupons, setCoupons] = useState<CouponRow[]>([]);
     const [classId, setClassId] = useState("");
-    const [count, setCount] = useState(5);
     const [loading, setLoading] = useState(true);
     const [generating, setGenerating] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -88,7 +87,7 @@ export default function AdminCouponCodesPage() {
             const res = await fetch("/api/admin/coupons/generate", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ classId, count }),
+                body: JSON.stringify({ classId, count: 1 }), // Always generate 1 coupon
             });
             const data = await res.json();
 
@@ -252,25 +251,25 @@ export default function AdminCouponCodesPage() {
             {/* Generate Form */}
             <div className="bg-white rounded-2xl shadow-lg shadow-slate-200/50 border border-slate-100 overflow-hidden mb-8">
                 <div className="relative">
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-300" />
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#0f4c81] via-[#1e6f9f] to-[#d4af37]" />
                     <div className="p-6 border-b border-slate-100">
                         <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-amber-50">
-                                <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div className="p-2 rounded-lg bg-[#0f4c81]/10">
+                                <svg className="w-5 h-5 text-[#0f4c81]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                                 </svg>
                             </div>
                             <div>
                                 <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">
-                                    Generate Coupons
+                                    Generate Test Coupon
                                 </h2>
-                                <p className="text-xs text-slate-500 mt-0.5">Create unique access codes for students</p>
+                                <p className="text-xs text-slate-500 mt-0.5">Create a unique access code for a student</p>
                             </div>
                         </div>
                     </div>
 
                     <form onSubmit={handleGenerate} className="p-6">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-2xl">
                             <div>
                                 <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">
                                     Class / Grade
@@ -279,7 +278,7 @@ export default function AdminCouponCodesPage() {
                                     value={classId}
                                     onChange={(e) => setClassId(e.target.value)}
                                     required
-                                    className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-300 transition-all"
+                                    className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#0f4c81]/20 focus:border-[#0f4c81] transition-all"
                                 >
                                     <option value="">Select class...</option>
                                     {classes.map((cls) => (
@@ -289,31 +288,18 @@ export default function AdminCouponCodesPage() {
                                     ))}
                                 </select>
                             </div>
-                            <div>
-                                <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">
-                                    Number of Codes
-                                </label>
-                                <input
-                                    type="number"
-                                    min={1}
-                                    max={50}
-                                    value={count}
-                                    onChange={(e) => setCount(parseInt(e.target.value, 10) || 1)}
-                                    className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-300 transition-all"
-                                />
-                            </div>
                             <div className="flex items-end">
                                 <button
                                     type="submit"
                                     disabled={generating || !classId}
-                                    className="w-full px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 text-sm font-semibold text-white shadow-md shadow-amber-200 hover:from-amber-700 hover:to-amber-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="w-full px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#0f4c81] to-[#1e6f9f] text-sm font-bold text-white shadow-md shadow-[#0f4c81]/20 hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                                 >
-                                    {generating ? "Generating..." : "Generate Codes"}
+                                    {generating ? "Generating..." : "Generate Test Access Coupon"}
                                 </button>
                             </div>
                         </div>
                         <p className="text-xs text-slate-500 mt-4 leading-relaxed">
-                            Each code can be used by one student. Share codes individually for secure access.
+                            Each coupon code will grant access to 1 class. Only one coupon is generated at a time for better security.
                         </p>
                     </form>
                 </div>

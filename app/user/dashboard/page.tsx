@@ -3,12 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import {
-    UserPortalBackground,
-    EmptyHistoryCard,
-    StatCard,
-    TestPaperIllustration,
-} from "@/components/user/UserPortalUI";
+import { UserPortalBackground } from "@/components/user/UserPortalUI";
 
 type TestAttempt = {
     id: string;
@@ -21,6 +16,12 @@ type TestAttempt = {
     createdAt: string;
 };
 
+type ClassItem = {
+    _id: string;
+    name: string;
+    status: "locked" | "pending" | "approved" | "rejected";
+};
+
 export default function UserDashboardPage() {
     const router = useRouter();
     const [user, setUser] = useState<{ name: string; email: string } | null>(null);
@@ -31,6 +32,8 @@ export default function UserDashboardPage() {
         averageScore: 0,
         highScore: 0,
     });
+    const [testClasses, setTestClasses] = useState<ClassItem[]>([]);
+    const [noteClasses, setNoteClasses] = useState<ClassItem[]>([]);
 
     const handleLogout = async () => {
         try {
@@ -76,6 +79,20 @@ export default function UserDashboardPage() {
                             highScore: max,
                         });
                     }
+                }
+
+                // Fetch test classes
+                const testClsRes = await fetch("/api/user/classes");
+                if (testClsRes.ok) {
+                    const testClsData = await testClsRes.json();
+                    setTestClasses(testClsData.classes || []);
+                }
+
+                // Fetch note classes
+                const noteClsRes = await fetch("/api/user/note-classes");
+                if (noteClsRes.ok) {
+                    const noteClsData = await noteClsRes.json();
+                    setNoteClasses(noteClsData.classes || []);
                 }
             } catch (err) {
                 console.error("Dashboard load error:", err);
@@ -131,197 +148,252 @@ export default function UserDashboardPage() {
                 </div>
             </header>
 
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-10 relative z-10">
-                <div className="grid lg:grid-cols-5 gap-8 mb-10">
-                    <div className="lg:col-span-3 bg-gradient-to-br from-[#0f4c81]/40 via-slate-900/80 to-slate-950/90 border border-white/10 rounded-3xl p-6 sm:p-10 relative overflow-hidden">
-                        <div className="absolute right-0 top-0 w-64 h-64 bg-[#d4af37]/10 rounded-full blur-[80px] pointer-events-none" />
-                        <div className="relative z-10">
-                            <p className="text-[#d4af37] text-xs font-bold uppercase tracking-[0.2em] mb-3">
-                                Online Test Papers · Tuition Students
-                            </p>
-                            <h1 className="text-3xl sm:text-4xl font-black mb-3 leading-tight">
-                                Welcome, <span className="text-[#d4af37]">{user?.name?.split(" ")[0]}</span>
-                            </h1>
-                            <p className="text-slate-300 text-sm sm:text-base max-w-xl leading-relaxed mb-6">
-                                Practice with real-style MCQ test papers for your class and subject. Track scores, improve weak areas, and prepare for exams with Ahmad Foundation.
-                            </p>
-                            <div className="flex flex-wrap gap-3">
-                                <Link
-                                    href="/user/test"
-                                    className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#b8960c] px-6 py-3 text-sm font-black text-slate-950 shadow-lg shadow-[#d4af37]/20 hover:brightness-110 transition-all"
-                                >
-                                    Start Mock Test
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                                    </svg>
-                                </Link>
-                                <Link
-                                    href="/user/notes"
-                                    className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#0f4c81] to-[#1e6f9f] px-6 py-3 text-sm font-black text-white shadow-lg shadow-[#0f4c81]/20 hover:brightness-110 transition-all"
-                                >
-                                    Browse Class Notes
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                    </svg>
-                                </Link>
-                                <span className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-xs text-slate-400">
-                                    <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                                    Secure timed exams
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="lg:col-span-2 flex items-center justify-center">
-                        <TestPaperIllustration />
-                    </div>
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-10 relative z-10 pb-16">
+                {/* ── Welcome Header ── */}
+                <div className="mb-10 text-center md:text-left">
+                    <p className="text-[#d4af37] text-xs font-bold uppercase tracking-[0.2em] mb-2">
+                        Ahmad Foundation Student Hub
+                    </p>
+                    <h1 className="text-3xl sm:text-4xl font-black mb-3 tracking-tight">
+                        Welcome, <span className="text-[#d4af37]">{user?.name?.split(" ")[0]}</span>!
+                    </h1>
+                    <p className="text-slate-400 text-sm max-w-2xl leading-relaxed">
+                        Access your online preparation resources below. We have divided the system into two separate portals: the MCQ Test Room for timed tests, and the Study Notes Library for curriculum books.
+                    </p>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <div className="lg:col-span-2 space-y-8">
-                        <div className="grid sm:grid-cols-3 gap-4">
-                            {[
-                                { icon: "1", title: "Choose class", desc: "Select your grade level" },
-                                { icon: "2", title: "Pick subject", desc: "Math, Science & more" },
-                                { icon: "3", title: "Take test", desc: "Timed MCQ practice" },
-                            ].map((item) => (
-                                <div
-                                    key={item.icon}
-                                    className="rounded-2xl border border-white/5 bg-slate-900/50 p-4 text-center"
-                                >
-                                    <div className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-full bg-[#0f4c81]/30 text-sm font-black text-[#d4af37]">
-                                        {item.icon}
+                {/* ── Split Portals Layout ── */}
+                <div className="grid lg:grid-cols-2 gap-8 items-start">
+                    
+                    {/* ── PORTAL A: MCQ TEST PRACTICE ROOM ── */}
+                    <div className="space-y-6">
+                        <div className="bg-gradient-to-br from-[#0f4c81]/30 via-slate-900/80 to-slate-950/95 border border-white/10 rounded-3xl p-6 sm:p-8 relative overflow-hidden shadow-2xl">
+                            <div className="absolute right-0 top-0 w-48 h-48 bg-[#d4af37]/5 rounded-full blur-[60px] pointer-events-none" />
+                            <div className="relative z-10 flex flex-col h-full justify-between">
+                                <div>
+                                    <div className="flex items-center gap-2.5 mb-4">
+                                        <div className="h-10 w-10 rounded-xl bg-[#d4af37]/15 border border-[#d4af37]/25 flex items-center justify-center text-lg">
+                                            ✍️
+                                        </div>
+                                        <div>
+                                            <p className="text-[#d4af37] text-[10px] font-bold uppercase tracking-widest">System 01</p>
+                                            <h2 className="text-xl font-black text-white">MCQ Practice & Tests</h2>
+                                        </div>
                                     </div>
-                                    <p className="text-sm font-bold text-white">{item.title}</p>
-                                    <p className="text-[11px] text-slate-500 mt-0.5">{item.desc}</p>
+                                    <p className="text-slate-300 text-xs sm:text-sm leading-relaxed mb-6">
+                                        Prepare for exams by taking timed tests. Standard practice (10 Qs) and Full sessions (50 Qs) are graded securely on the server with active anti-cheating protection.
+                                    </p>
                                 </div>
-                            ))}
+                                <Link
+                                    href="/user/test"
+                                    className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#b8960c] px-6 py-3.5 text-sm font-black text-slate-950 shadow-lg shadow-[#d4af37]/20 hover:brightness-110 transition-all text-center"
+                                >
+                                    Enter Test Practice Room →
+                                </Link>
+                            </div>
                         </div>
 
-                        <div className="bg-slate-900/70 border border-white/10 rounded-2xl p-6 sm:p-8 backdrop-blur-sm">
-                            <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-lg font-black text-white flex items-center gap-2">
-                                    <svg className="w-5 h-5 text-[#d4af37]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                                    </svg>
-                                    Test Paper History
-                                </h3>
+                        {/* Test Class Access Status */}
+                        <div className="bg-slate-900/60 border border-white/10 rounded-2xl p-5 backdrop-blur-sm">
+                            <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-3">Test Room Access Status</h3>
+                            <div className="space-y-2">
+                                {testClasses.length === 0 ? (
+                                    <p className="text-xs text-slate-500">No classes registered.</p>
+                                ) : (
+                                    testClasses.map((cls) => (
+                                        <div key={cls._id} className="flex items-center justify-between text-xs py-1.5 border-b border-white/5 last:border-0">
+                                            <span className="font-bold text-white">Class {cls.name}</span>
+                                            <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold border ${
+                                                cls.status === "approved" 
+                                                    ? "bg-green-500/10 text-green-400 border-green-500/20"
+                                                    : cls.status === "pending"
+                                                        ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
+                                                        : "bg-slate-800 text-slate-400 border-white/5"
+                                            }`}>
+                                                {cls.status === "approved" ? "Unlocked" : cls.status === "pending" ? "Pending" : "Locked"}
+                                            </span>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Performance Stats */}
+                        <div className="bg-slate-900/60 border border-white/10 rounded-2xl p-5 backdrop-blur-sm">
+                            <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-3">Performance Overview</h3>
+                            <div className="grid grid-cols-3 gap-3">
+                                {[
+                                    { label: "Taken", val: stats.totalExams, suffix: "", color: "text-sky-400" },
+                                    { label: "Avg Score", val: stats.averageScore, suffix: "%", color: "text-[#d4af37]" },
+                                    { label: "Best", val: stats.highScore, suffix: "%", color: "text-emerald-400" }
+                                ].map((stat) => (
+                                    <div key={stat.label} className="bg-slate-950/60 border border-white/5 rounded-xl p-3 text-center">
+                                        <p className="text-[10px] text-slate-500 font-bold uppercase">{stat.label}</p>
+                                        <p className={`text-lg font-black mt-1 ${stat.color}`}>
+                                            {stat.val === 0 ? "—" : `${stat.val}${stat.suffix}`}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Recent Attempts History */}
+                        <div className="bg-slate-900/60 border border-white/10 rounded-2xl p-5 backdrop-blur-sm">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">Test Attempt History</h3>
                                 {hasHistory && (
-                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">
                                         {history.length} attempt{history.length !== 1 ? "s" : ""}
                                     </span>
                                 )}
                             </div>
 
                             {!hasHistory ? (
-                                <EmptyHistoryCard />
+                                <div className="text-center py-8 border border-dashed border-white/5 rounded-xl bg-white/[0.01]">
+                                    <p className="text-xs text-slate-500">No test papers completed yet.</p>
+                                </div>
                             ) : (
                                 <div className="overflow-x-auto rounded-xl border border-white/5">
-                                    <table className="w-full text-left text-xs">
+                                    <table className="w-full text-left text-[11px]">
                                         <thead>
                                             <tr className="border-b border-white/5 text-slate-400 font-bold uppercase tracking-wider bg-white/[0.02]">
-                                                <th className="pb-3 pt-3 pl-4">Subject / Grade</th>
-                                                <th className="pb-3 text-center">Score</th>
-                                                <th className="pb-3 text-center">%</th>
-                                                <th className="pb-3 text-center">Time</th>
-                                                <th className="pb-3 pr-4 text-right">Result</th>
+                                                <th className="pb-2 pt-2 pl-3">Subject</th>
+                                                <th className="pb-2 text-center">Score</th>
+                                                <th className="pb-2 text-center">%</th>
+                                                <th className="pb-2 pr-3 text-right">Action</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-white/5 font-medium">
-                                            {history.map((item) => (
+                                            {history.slice(0, 5).map((item) => (
                                                 <tr key={item.id} className="hover:bg-white/5 transition-all">
-                                                    <td className="py-4 pl-4">
-                                                        <div className="text-sm font-bold text-white">{item.subjectName}</div>
-                                                        <div className="text-slate-400 text-[10px]">Class {item.className}</div>
+                                                    <td className="py-2.5 pl-3">
+                                                        <div className="font-bold text-white">{item.subjectName}</div>
+                                                        <div className="text-slate-500 text-[9px]">Class {item.className}</div>
                                                     </td>
-                                                    <td className="py-4 text-center text-slate-300">
+                                                    <td className="py-2.5 text-center text-slate-300">
                                                         {item.score}/{item.totalQuestions}
                                                     </td>
-                                                    <td className="py-4 text-center">
-                                                        <span
-                                                            className={`px-2.5 py-1 rounded-lg text-[10px] font-bold ${
-                                                                item.percentage >= 80
-                                                                    ? "bg-green-500/10 text-green-400 border border-green-500/20"
-                                                                    : item.percentage >= 50
-                                                                      ? "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"
-                                                                      : "bg-red-500/10 text-red-400 border border-red-500/20"
-                                                            }`}
-                                                        >
+                                                    <td className="py-2.5 text-center">
+                                                        <span className={
+                                                            item.percentage >= 80 ? "text-green-400 font-bold" :
+                                                            item.percentage >= 50 ? "text-yellow-400 font-bold" : "text-red-400 font-bold"
+                                                        }>
                                                             {item.percentage}%
                                                         </span>
                                                     </td>
-                                                    <td className="py-4 text-center text-slate-400">
-                                                        {Math.floor(item.durationSeconds / 60)}m {item.durationSeconds % 60}s
-                                                    </td>
-                                                    <td className="py-4 pr-4 text-right">
+                                                    <td className="py-2.5 pr-3 text-right">
                                                         <Link
                                                             href={`/user/result/${item.id}`}
-                                                            className="inline-block px-3 py-1.5 bg-[#0f4c81]/30 border border-[#0f4c81]/40 text-sky-200 hover:text-white hover:bg-[#d4af37]/20 hover:border-[#d4af37]/30 rounded-lg text-[10px] font-bold transition-all"
+                                                            className="inline-block px-2.5 py-1 bg-[#0f4c81]/30 border border-[#0f4c81]/40 text-sky-200 hover:text-white rounded-lg text-[9px] font-bold transition-all"
                                                         >
-                                                            View Scorecard
+                                                            Result
                                                         </Link>
                                                     </td>
                                                 </tr>
                                             ))}
                                         </tbody>
                                     </table>
+                                    {history.length > 5 && (
+                                        <p className="text-[10px] text-slate-500 text-center py-2 border-t border-white/5">
+                                            Only showing last 5 attempts.
+                                        </p>
+                                    )}
                                 </div>
                             )}
                         </div>
                     </div>
 
+                    {/* ── PORTAL B: CLASS STUDY NOTES LIBRARY ── */}
                     <div className="space-y-6">
-                        <div className="bg-slate-900/70 border border-white/10 rounded-2xl p-6 backdrop-blur-sm">
-                            <h3 className="text-lg font-black text-white mb-1">Performance</h3>
-                            <p className="text-[11px] text-slate-500 mb-5">Updates after each mock test</p>
-                            <div className="space-y-3">
-                                <StatCard
-                                    label="Tests Taken"
-                                    value={stats.totalExams}
-                                    accent="blue"
-                                    emptyHint="Complete your first test"
-                                />
-                                <StatCard
-                                    label="Average Score"
-                                    value={stats.averageScore}
-                                    suffix="%"
-                                    accent="gold"
-                                    emptyHint="No scores yet"
-                                />
-                                <StatCard
-                                    label="Best Score"
-                                    value={stats.highScore}
-                                    suffix="%"
-                                    accent="green"
-                                    emptyHint="Beat your record"
-                                />
+                        <div className="bg-gradient-to-br from-[#0f4c81]/20 via-slate-900/80 to-slate-950/95 border border-white/10 rounded-3xl p-6 sm:p-8 relative overflow-hidden shadow-2xl">
+                            <div className="absolute right-0 top-0 w-48 h-48 bg-[#0f4c81]/10 rounded-full blur-[60px] pointer-events-none" />
+                            <div className="relative z-10 flex flex-col h-full justify-between">
+                                <div>
+                                    <div className="flex items-center gap-2.5 mb-4">
+                                        <div className="h-10 w-10 rounded-xl bg-[#0f4c81]/30 border border-[#0f4c81]/40 flex items-center justify-center text-lg">
+                                            📚
+                                        </div>
+                                        <div>
+                                            <p className="text-sky-400 text-[10px] font-bold uppercase tracking-widest">System 02</p>
+                                            <h2 className="text-xl font-black text-white">Class & Study Notes</h2>
+                                        </div>
+                                    </div>
+                                    <p className="text-slate-300 text-xs sm:text-sm leading-relaxed mb-6">
+                                        View and download official class preparation PDF notes, textbook guides, and summaries uploaded directly by tuition center instructors.
+                                    </p>
+                                </div>
+                                <Link
+                                    href="/user/notes"
+                                    className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#0f4c81] to-[#1e6f9f] px-6 py-3.5 text-sm font-black text-white shadow-lg shadow-[#0f4c81]/20 hover:brightness-110 transition-all text-center"
+                                >
+                                    Enter Study Notes Library →
+                                </Link>
                             </div>
                         </div>
 
-                        <div className="rounded-2xl border border-[#d4af37]/20 bg-gradient-to-br from-[#d4af37]/10 to-transparent p-6">
-                            <h4 className="text-sm font-black text-white mb-2">Need class access?</h4>
-                            <p className="text-slate-400 text-[11px] leading-relaxed mb-4">
-                                Locked grades require premium access via WhatsApp or a coupon code from your teacher.
-                            </p>
-                            <Link
-                                href="/user/test"
-                                className="text-[#d4af37] text-xs font-bold hover:underline"
-                            >
-                                Go to Practice Room →
-                            </Link>
+                        {/* Notes Class Access Status */}
+                        <div className="bg-slate-900/60 border border-white/10 rounded-2xl p-5 backdrop-blur-sm">
+                            <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-3">Notes Library Access Status</h3>
+                            <div className="space-y-2">
+                                {noteClasses.length === 0 ? (
+                                    <p className="text-xs text-slate-500">No classes registered.</p>
+                                ) : (
+                                    noteClasses.map((cls) => (
+                                        <div key={cls._id} className="flex items-center justify-between text-xs py-1.5 border-b border-white/5 last:border-0">
+                                            <span className="font-bold text-white">Class {cls.name}</span>
+                                            <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold border ${
+                                                cls.status === "approved" 
+                                                    ? "bg-green-500/10 text-green-400 border-green-500/20"
+                                                    : cls.status === "pending"
+                                                        ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
+                                                        : "bg-slate-800 text-slate-400 border-white/5"
+                                            }`}>
+                                                {cls.status === "approved" ? "Unlocked" : cls.status === "pending" ? "Pending" : "Locked"}
+                                            </span>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
                         </div>
 
-                        <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5">
-                            <h4 className="text-xs font-black text-emerald-400 mb-2 flex items-center gap-1.5">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                                </svg>
-                                Fair testing
-                            </h4>
-                            <p className="text-slate-500 text-[10px] leading-relaxed">
-                                Answers are graded on the server. Copy/paste and inspect tools are disabled during exams.
+                        {/* Study Notes Checklist */}
+                        <div className="bg-slate-900/60 border border-white/10 rounded-2xl p-5 backdrop-blur-sm">
+                            <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-3">Study Library Features</h3>
+                            <ul className="space-y-3 text-xs text-slate-300">
+                                <li className="flex gap-2">
+                                    <span className="text-emerald-400 font-bold">✓</span>
+                                    <span>Teacher-compiled high-quality PDF guides.</span>
+                                </li>
+                                <li className="flex gap-2">
+                                    <span className="text-emerald-400 font-bold">✓</span>
+                                    <span>One-click direct download links.</span>
+                                </li>
+                                <li className="flex gap-2">
+                                    <span className="text-emerald-400 font-bold">✓</span>
+                                    <span>Redeem custom note coupons to unlock syllabus chapters.</span>
+                                </li>
+                                <li className="flex gap-2">
+                                    <span className="text-emerald-400 font-bold">✓</span>
+                                    <span>Instant synchronization with class updates.</span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        {/* Quick Unlock Banner */}
+                        <div className="rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-transparent p-5">
+                            <h4 className="text-xs font-black text-amber-400 mb-1">Need premium note access?</h4>
+                            <p className="text-slate-400 text-[11px] leading-relaxed mb-3">
+                                Certain class notes are locked for verified accounts. Redeem your coupon or request access manually from the Study Notes page.
                             </p>
+                            <Link
+                                href="/user/notes"
+                                className="text-[#d4af37] text-xs font-bold hover:underline"
+                            >
+                                Unlock Class Notes →
+                            </Link>
                         </div>
                     </div>
+
                 </div>
             </main>
         </UserPortalBackground>

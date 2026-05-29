@@ -87,11 +87,11 @@ export default function UserNotesPage() {
     const activeClass = classes.find((c) => c._id === selectedClass);
     const activeClassStatus = activeClass?.status || "locked";
 
-    // Fetch subjects when class changes
+    // Fetch subjects when class changes or coupon is redeemed
     useEffect(() => {
         if (!selectedClass || activeClassStatus !== "approved") {
             setSubjects([]);
-            setSelectedSubject([]);
+            setSelectedSubject("");
             setNotes([]);
             return;
         }
@@ -112,7 +112,7 @@ export default function UserNotesPage() {
             }
         };
         fetchSubjects();
-    }, [selectedClass, activeClassStatus]);
+    }, [selectedClass, activeClassStatus, couponRedeemed]);
 
     // Fetch notes when subject changes
     useEffect(() => {
