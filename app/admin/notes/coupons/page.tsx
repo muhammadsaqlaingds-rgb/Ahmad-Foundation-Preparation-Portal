@@ -174,8 +174,8 @@ export default function AdminNoteCouponsPage() {
 
     return (
         <AdminShell
-            title="Note Access Coupons"
-            subtitle="Generate class-level unlock codes — students redeem to access all notes for a class"
+            title="Study Notes Access Coupons"
+            subtitle="Generate class-level unlock codes for study notes — students redeem to access all study guides & PDF notes"
         >
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

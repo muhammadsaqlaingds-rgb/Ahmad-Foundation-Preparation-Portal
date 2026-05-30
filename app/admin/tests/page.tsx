@@ -166,7 +166,7 @@ export default function AdminTestsPage() {
     };
 
     return (
-        <AdminShell title="Test Management" subtitle="Configure mock exams and tests under subjects">
+        <AdminShell title="Manage Practice Tests" subtitle="Create and configure mock exams, set timers, and lock or unlock tests">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Form Card */}
                 <section className="lg:col-span-1">

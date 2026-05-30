@@ -81,7 +81,7 @@ export default function AdminDashboardPage() {
             ),
         },
         {
-            label: "MCQ Question Bank",
+            label: "Manage Exam Questions",
             value: mcqCount !== null ? mcqCount : "...",
             badge: "Active MCQs",
             color: "text-amber-700 bg-amber-50 border-amber-200",
@@ -276,7 +276,7 @@ export default function AdminDashboardPage() {
                                 </svg>
                             </div>
                             <div className="flex-1">
-                                <p className="font-semibold text-sm text-slate-700">MCQ Bank</p>
+                                <p className="font-semibold text-sm text-slate-700">Manage Questions</p>
                                 <p className="text-xs text-slate-400 mt-0.5">View, edit, or delete questions</p>
                             </div>
                             <svg className="w-4 h-4 text-slate-300 group-hover:text-emerald-500 group-hover:translate-x-1 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">

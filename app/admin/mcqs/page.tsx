@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import AdminShell from "@/app/admin/AdminShell";
+import { renderFormattedText } from "@/lib/mathFormatter";
 
 type ClassItem = {
     _id: string;
@@ -300,7 +301,7 @@ export default function AdminMcqListPage() {
     };
 
     return (
-        <AdminShell title="MCQ Question Bank" subtitle="Browse, edit, and delete questions from the active test repository">
+        <AdminShell title="Manage Exam Questions" subtitle="View, search, edit, and delete multiple-choice questions used in practice tests">
             {/* Stats Bar */}
             <div className="bg-white rounded-2xl shadow-lg shadow-slate-200/50 border border-slate-100 p-4 mb-8">
                 <div className="flex items-center justify-between">
@@ -472,7 +473,7 @@ export default function AdminMcqListPage() {
                                                         </svg>
                                                     </div>
                                                     <span className="text-sm text-slate-700 line-clamp-2" title={mcq.question}>
-                                                        {mcq.question}
+                                                        {renderFormattedText(mcq.question)}
                                                     </span>
                                                 </div>
                                             </td>

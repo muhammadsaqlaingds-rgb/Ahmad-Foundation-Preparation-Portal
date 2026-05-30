@@ -181,8 +181,8 @@ export default function AdminCouponCodesPage() {
 
     return (
         <AdminShell
-            title="Coupon Codes"
-            subtitle="Generate unlock codes per class — students redeem on the practice room page"
+            title="Test Access Coupons"
+            subtitle="Generate class-level unlock codes for practice tests — students redeem to access the practice room"
         >
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

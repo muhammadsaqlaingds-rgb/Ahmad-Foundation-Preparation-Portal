@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import CouponRedeem from "@/components/CouponRedeem";
+import { renderFormattedText } from "@/lib/mathFormatter";
 import {
     UserPortalBackground,
     TestPaperIllustration,
@@ -910,7 +911,7 @@ function UserTestPageInner() {
                                                     {serialNumber}
                                                 </span>
                                                 <h4 className="text-sm sm:text-base font-bold text-slate-100 leading-relaxed pt-0.5">
-                                                    {mcq.question}
+                                                    {renderFormattedText(mcq.question)}
                                                 </h4>
                                             </div>
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-0 sm:pl-10">
@@ -934,7 +935,7 @@ function UserTestPageInner() {
                                                                 className="w-4 h-4 accent-[#d4af37] border-white/20 bg-slate-950 focus:ring-0 focus:outline-none"
                                                             />
                                                             <span className="text-[#d4af37] font-black">{optionLetter}.</span>
-                                                            <span className="leading-snug">{option}</span>
+                                                            <span className="leading-snug">{renderFormattedText(option)}</span>
                                                         </label>
                                                     );
                                                 })}
