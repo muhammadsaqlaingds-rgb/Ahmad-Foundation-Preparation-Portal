@@ -11,7 +11,16 @@ function sanitizeFilename(name: string): string {
 /** POST /api/admin/notes */
 export async function POST(req: Request) {
   try {
-    // Parse multipart/form-data
+    // ✅ STEP 1: Check BLOB token exists
+    const token = process.env.BLOB_READ_WRITE_TOKEN;
+    console.log("🔑 BLOB_READ_WRITE_TOKEN present:", !!token);
+    if (!token) {
+      console.error("❌ BLOB_READ_WRITE_TOKEN is missing from environment variables!");
+      return NextResponse.json({ error: "Server config error: Blob token missing" }, { status: 500 });
+    }
+
+    // ✅ STEP 2: Parse form data
+    console.log("📋 Parsing form data...");
     const form = await req.formData();
     const name = form.get("name") as string;
     const description = form.get("description") as string;
@@ -21,25 +30,55 @@ export async function POST(req: Request) {
     const imageFile = form.get("image") as File | null;
     const pdfFile = form.get("pdf") as File;
 
+    console.log("📋 Form fields received:", {
+      name: name || "MISSING",
+      description: description ? "✅" : "MISSING",
+      classId: classId || "MISSING",
+      subjectId: subjectId || "MISSING",
+      pdfFile: pdfFile ? `✅ ${pdfFile.name} (${pdfFile.size} bytes)` : "MISSING",
+      imageFile: imageFile ? `✅ ${imageFile.name} (${imageFile.size} bytes)` : "none",
+    });
+
     if (!name || !description || !classId || !subjectId || !pdfFile) {
+      console.error("❌ Missing required fields");
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
+    // ✅ STEP 3: Connect to DB
+    console.log("🗄️ Connecting to database...");
     await connectToDatabase();
+    console.log("✅ Database connected");
 
-    // Upload PDF to Vercel Blob
+    // ✅ STEP 4: Upload PDF to Vercel Blob
     const pdfName = `notes/${Date.now()}_${sanitizeFilename(pdfFile.name)}`;
-    const pdfBlob = await put(pdfName, pdfFile, { access: "public" });
-    const pdfUrl = pdfBlob.url;
+    console.log("📄 Uploading PDF to Vercel Blob:", pdfName);
+    let pdfUrl: string;
+    try {
+      const pdfBlob = await put(pdfName, pdfFile, { access: "public" });
+      pdfUrl = pdfBlob.url;
+      console.log("✅ PDF uploaded successfully:", pdfUrl);
+    } catch (blobErr: any) {
+      console.error("❌ PDF Blob upload failed:", blobErr?.message || blobErr);
+      return NextResponse.json({ error: `PDF upload failed: ${blobErr?.message || "Blob error"}` }, { status: 500 });
+    }
 
-    // Upload optional image to Vercel Blob
+    // ✅ STEP 5: Upload optional image to Vercel Blob
     let imageUrl: string | undefined;
     if (imageFile && imageFile.size > 0) {
       const imgName = `notes/${Date.now()}_${sanitizeFilename(imageFile.name)}`;
-      const imgBlob = await put(imgName, imageFile, { access: "public" });
-      imageUrl = imgBlob.url;
+      console.log("🖼️ Uploading image to Vercel Blob:", imgName);
+      try {
+        const imgBlob = await put(imgName, imageFile, { access: "public" });
+        imageUrl = imgBlob.url;
+        console.log("✅ Image uploaded successfully:", imageUrl);
+      } catch (imgErr: any) {
+        console.error("❌ Image Blob upload failed:", imgErr?.message || imgErr);
+        return NextResponse.json({ error: `Image upload failed: ${imgErr?.message || "Blob error"}` }, { status: 500 });
+      }
     }
 
+    // ✅ STEP 6: Save to MongoDB
+    console.log("💾 Saving note to MongoDB...");
     const newNote = await Note.create({
       name,
       description,
@@ -49,11 +88,12 @@ export async function POST(req: Request) {
       subjectId,
       requiresCoupon,
     });
+    console.log("✅ Note saved to MongoDB:", newNote._id);
 
     return NextResponse.json({ success: true, note: newNote }, { status: 201 });
-  } catch (err) {
-    console.error("Admin notes POST error:", err);
-    return NextResponse.json({ error: "Failed to create note" }, { status: 500 });
+  } catch (err: any) {
+    console.error("❌ Admin notes POST error:", err?.message || err);
+    return NextResponse.json({ error: err?.message || "Failed to create note" }, { status: 500 });
   }
 }
 
