@@ -1,17 +1,9 @@
 import { NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
 import Note from "@/models/Note";
-import path from "path";
-import fs from "fs/promises";
+import { put } from "@vercel/blob";
 
-// Helper to ensure upload directory exists
-async function ensureUploadDir() {
-  const uploadDir = path.resolve(process.cwd(), "public", "uploads", "notes");
-  await fs.mkdir(uploadDir, { recursive: true });
-  return uploadDir;
-}
-
-// Helper to sanitize filenames — replaces URL-unsafe characters (#, ?, &, +, etc.) with underscores
+// Helper to sanitize filenames — replaces URL-unsafe characters with underscores
 function sanitizeFilename(name: string): string {
   return name.replace(/[#?&=+%\s]/g, "_");
 }
@@ -34,23 +26,18 @@ export async function POST(req: Request) {
     }
 
     await connectToDatabase();
-    const uploadDir = await ensureUploadDir();
 
-    // Save PDF — sanitize the filename to avoid URL-breaking characters
-    const pdfName = `${Date.now()}_${sanitizeFilename(pdfFile.name)}`;
-    const pdfPath = path.join(uploadDir, pdfName);
-    const pdfData = Buffer.from(await pdfFile.arrayBuffer());
-    await fs.writeFile(pdfPath, pdfData);
-    const pdfUrl = `/uploads/notes/${pdfName}`;
+    // Upload PDF to Vercel Blob
+    const pdfName = `notes/${Date.now()}_${sanitizeFilename(pdfFile.name)}`;
+    const pdfBlob = await put(pdfName, pdfFile, { access: "public" });
+    const pdfUrl = pdfBlob.url;
 
-    // Save optional image — sanitize the filename
+    // Upload optional image to Vercel Blob
     let imageUrl: string | undefined;
     if (imageFile && imageFile.size > 0) {
-      const imgName = `${Date.now()}_${sanitizeFilename(imageFile.name)}`;
-      const imgPath = path.join(uploadDir, imgName);
-      const imgData = Buffer.from(await imageFile.arrayBuffer());
-      await fs.writeFile(imgPath, imgData);
-      imageUrl = `/uploads/notes/${imgName}`;
+      const imgName = `notes/${Date.now()}_${sanitizeFilename(imageFile.name)}`;
+      const imgBlob = await put(imgName, imageFile, { access: "public" });
+      imageUrl = imgBlob.url;
     }
 
     const newNote = await Note.create({
