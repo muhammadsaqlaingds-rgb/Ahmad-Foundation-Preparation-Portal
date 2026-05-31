@@ -14,11 +14,18 @@ export async function POST(req: Request) {
         }
 
         const body = await req.json();
-        const { classId, subjectId, code } = body as { classId?: string; subjectId?: string; code?: string };
+        const { classId, subjectId, code } = body as {
+            classId?: string;
+            subjectId?: string;
+            code?: string;
+        };
 
         const trimmedCode = code?.trim().toUpperCase();
         if (!classId || !subjectId || !trimmedCode) {
-            return NextResponse.json({ error: "Class, subject, and coupon code are required." }, { status: 400 });
+            return NextResponse.json(
+                { error: "Class, subject, and coupon code are required." },
+                { status: 400 }
+            );
         }
 
         await connectToDatabase();
@@ -33,35 +40,48 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Subject not found." }, { status: 404 });
         }
 
-        // Find matching coupon
+        // ── Step 1: fetch candidates (read-only, no mutation) ─────────────────
         const candidates = await NoteCoupon.find({
             classId,
             subjectId,
             isUsed: false,
             isActive: true,
-            couponType: "NOTE", // Only allow NOTE coupons for note access
-        });
+            couponType: "NOTE",
+        }).select("_id hashedCoupon");
 
-        let matched: (typeof candidates)[number] | null = null;
+        // ── Step 2: find the matching coupon via bcrypt ───────────────────────
+        let matchedId: string | null = null;
         for (const coupon of candidates) {
-            const isMatch = await coupon.compare(trimmedCode);
-            if (isMatch) {
-                matched = coupon;
+            if (await coupon.compare(trimmedCode)) {
+                matchedId = coupon._id.toString();
                 break;
             }
         }
 
-        if (!matched) {
-            return NextResponse.json({ error: "Invalid or expired NOTE coupon code. Test coupons cannot be used for notes." }, { status: 400 });
+        if (!matchedId) {
+            return NextResponse.json(
+                { error: "Invalid or expired NOTE coupon code. Test coupons cannot be used for notes." },
+                { status: 400 }
+            );
         }
 
-        // Mark coupon as used
-        matched.isUsed = true;
-        matched.usedBy = user._id;
-        matched.usedAt = new Date();
-        await matched.save();
+        // ── Step 3: atomically claim the coupon ───────────────────────────────
+        // The filter includes isUsed: false — if a concurrent request already
+        // claimed it between steps 1 and 3, this returns null and we reject.
+        const claimed = await NoteCoupon.findOneAndUpdate(
+            { _id: matchedId, isUsed: false, isActive: true },
+            { $set: { isUsed: true, usedBy: user._id, usedAt: new Date() } },
+            { new: true }
+        );
 
-        // Grant access to all notes in this class/subject
+        if (!claimed) {
+            return NextResponse.json(
+                { error: "This coupon has already been used. Please try a different code." },
+                { status: 409 }
+            );
+        }
+
+        // ── Step 4: grant access to all notes in this class/subject ──────────
         const Note = (await import("@/models/Note")).default;
         const notes = await Note.find({
             classId,
@@ -69,7 +89,6 @@ export async function POST(req: Request) {
             isDeleted: { $ne: true },
         }).select("_id");
 
-        // Create note access records for all notes
         const accessPromises = notes.map((note: any) =>
             NoteAccess.findOneAndUpdate(
                 { userId: user._id, noteId: note._id },
