@@ -7,7 +7,8 @@ const AdminSchema = new Schema({
         unique: true,
         trim: true,
     },
-    password: {
+    // Stores a bcrypt hash — never a plaintext password
+    passwordHash: {
         type: String,
         required: true,
     },

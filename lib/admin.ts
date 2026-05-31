@@ -107,12 +107,22 @@ export async function requireAdmin(): Promise<
 
 // ─── Admin Credential Helpers ────────────────────────────────────────────────
 
+import bcrypt from "bcryptjs";
+
+const BCRYPT_ROUNDS = 12;
+
+/**
+ * Seed or update the admin record from environment variables.
+ * Passwords are always stored as bcrypt hashes — never plaintext.
+ * Handles migration: if an existing record has a legacy plaintext `password`
+ * field (from before this fix), it is hashed and moved to `passwordHash`.
+ */
 export async function ensureAdminFromEnv() {
     const rawEmail = process.env.ADMIN_EMAIL;
     const rawPassword = process.env.ADMIN_PASSWORD;
 
-    const email = rawEmail ? rawEmail.trim() : "";
-    const password = rawPassword ? rawPassword.trim() : "";
+    const email = rawEmail?.trim() ?? "";
+    const password = rawPassword?.trim() ?? "";
 
     if (!email || !password) {
         console.warn("ADMIN_EMAIL or ADMIN_PASSWORD is not set in environment variables.");
@@ -121,25 +131,48 @@ export async function ensureAdminFromEnv() {
 
     await connectToDatabase();
 
-    const existing = await Admin.findOne({ email });
+    const existing = await Admin.findOne({ email }).lean() as any;
 
     if (!existing) {
-        await Admin.create({ email, password });
-        console.log("Admin created from env.", { email });
+        // Fresh install — hash and store
+        const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+        await Admin.create({ email, passwordHash });
+        console.log("Admin created from env (hashed).", { email });
         return;
     }
 
-    if (existing.password !== password) {
-        existing.password = password;
-        await existing.save();
-        console.log("Admin password updated from env.", { email });
+    // ── Migration: legacy record has plaintext `password` field ──────────────
+    if (existing.password && !existing.passwordHash) {
+        console.log("Migrating admin record from plaintext password to bcrypt hash.", { email });
+        const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+        await Admin.updateOne(
+            { email },
+            { $set: { passwordHash }, $unset: { password: "" } }
+        );
+        console.log("Admin password migrated to bcrypt hash.", { email });
         return;
     }
 
-    console.log("Admin from env already exists with same credentials.", { email });
+    // ── Normal update: re-hash if the env password has changed ───────────────
+    const isSame = existing.passwordHash
+        ? await bcrypt.compare(password, existing.passwordHash)
+        : false;
+
+    if (!isSame) {
+        const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+        await Admin.updateOne({ email }, { $set: { passwordHash } });
+        console.log("Admin password updated (re-hashed).", { email });
+        return;
+    }
+
+    console.log("Admin from env already up-to-date.", { email });
 }
 
-export async function validateAdminCredentials(email: string, password: string) {
+/**
+ * Validate admin credentials using bcrypt.compare.
+ * Returns true only if the email exists and the password matches the stored hash.
+ */
+export async function validateAdminCredentials(email: string, password: string): Promise<boolean> {
     const inputEmail = email.trim();
     const inputPassword = password.trim();
 
@@ -147,21 +180,9 @@ export async function validateAdminCredentials(email: string, password: string) 
 
     await connectToDatabase();
 
-    const admin = await Admin.findOne({ email: inputEmail });
-    if (!admin) return false;
+    const admin = await Admin.findOne({ email: inputEmail }).lean() as any;
+    if (!admin?.passwordHash) return false;
 
-    const dbPassword = typeof admin.password === "string" ? admin.password.trim() : "";
-
-    const match = dbPassword === inputPassword;
-
-    if (!match) {
-        console.warn("Admin login failed: password mismatch for email", {
-            email: inputEmail,
-            inputLength: inputPassword.length,
-            storedLength: dbPassword.length,
-        });
-    }
-
-    return match;
+    return bcrypt.compare(inputPassword, admin.passwordHash);
 }
 
