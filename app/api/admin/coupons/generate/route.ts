@@ -26,26 +26,27 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Class not found." }, { status: 404 });
         }
 
-        const created: { id: string; code: string; className: string }[] = [];
+        // Generate all codes and hash them in parallel — no sequential awaits
+        const rawCodes = Array.from({ length: num }, () => generateCouponCode());
+        const hashes = await Promise.all(rawCodes.map((code) => hashCouponCode(code)));
 
-        for (let i = 0; i < num; i++) {
-            const code = generateCouponCode();
-            const codePrefix = extractCodePrefix(code);
-            const hashedCoupon = await hashCouponCode(code);
-            const doc = await Coupon.create({
-                classId,
-                codePrefix,
-                hashedCoupon,
-                couponType: "TEST",
-                isUsed: false,
-                isActive: true,
-            });
-            created.push({
-                id: doc._id.toString(),
-                code,
-                className: targetClass.name,
-            });
-        }
+        const docs = rawCodes.map((code, i) => ({
+            classId,
+            codePrefix: extractCodePrefix(code),
+            hashedCoupon: hashes[i],
+            couponType: "TEST" as const,
+            isUsed: false,
+            isActive: true,
+        }));
+
+        // Single round-trip to the DB instead of N sequential creates
+        const inserted = await Coupon.insertMany(docs);
+
+        const created = rawCodes.map((code, i) => ({
+            id: inserted[i]._id.toString(),
+            code,
+            className: targetClass.name,
+        }));
 
         return NextResponse.json({
             success: true,

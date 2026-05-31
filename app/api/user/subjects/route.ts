@@ -22,20 +22,12 @@ export async function GET(req: Request) {
 
         await connectToDatabase();
 
-        // Security check: Check if user has approved access via ClassAccess OR NoteClassAccess
-        const classAccess = await ClassAccess.findOne({
-            userId: user._id,
-            classId,
-            status: "approved",
-        }).lean();
-
-        const noteClassAccess = !classAccess
-            ? await NoteClassAccess.findOne({
-                  userId: user._id,
-                  classId,
-                  status: "approved",
-              }).lean()
-            : null;
+        // Run both access checks in parallel — no reason to wait for the first
+        // before starting the second since they're independent queries.
+        const [classAccess, noteClassAccess] = await Promise.all([
+            ClassAccess.findOne({ userId: user._id, classId, status: "approved" }).lean(),
+            NoteClassAccess.findOne({ userId: user._id, classId, status: "approved" }).lean(),
+        ]);
 
         if (!classAccess && !noteClassAccess) {
             return NextResponse.json(

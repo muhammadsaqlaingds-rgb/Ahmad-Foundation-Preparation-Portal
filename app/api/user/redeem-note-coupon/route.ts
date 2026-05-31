@@ -81,22 +81,29 @@ export async function POST(req: Request) {
             isDeleted: { $ne: true },
         }).select("_id");
 
-        const accessPromises = notes.map((note: any) =>
-            NoteAccess.findOneAndUpdate(
-                { userId: user._id, noteId: note._id },
-                {
-                    userId: user._id,
-                    noteId: note._id,
-                    classId,
-                    subjectId,
-                    unlockedVia: "coupon",
-                    unlockedAt: new Date(),
-                },
-                { upsert: true, new: true }
-            )
-        );
-
-        await Promise.all(accessPromises);
+        if (notes.length > 0) {
+            const now = new Date();
+            // Single bulkWrite instead of N findOneAndUpdate round-trips
+            await NoteAccess.bulkWrite(
+                notes.map((note: any) => ({
+                    updateOne: {
+                        filter: { userId: user._id, noteId: note._id },
+                        update: {
+                            $set: {
+                                userId: user._id,
+                                noteId: note._id,
+                                classId,
+                                subjectId,
+                                unlockedVia: "coupon",
+                                unlockedAt: now,
+                            },
+                        },
+                        upsert: true,
+                    },
+                })),
+                { ordered: false }
+            );
+        }
 
         return NextResponse.json({
             success: true,

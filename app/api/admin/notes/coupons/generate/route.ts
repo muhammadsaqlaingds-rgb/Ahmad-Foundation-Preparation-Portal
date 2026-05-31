@@ -13,10 +13,7 @@ export async function POST(req: Request) {
     if (!auth.authorized) return auth.response;
     try {
         const body = await req.json();
-        const { classId, count } = body as {
-            classId?: string;
-            count?: number;
-        };
+        const { classId, count } = body as { classId?: string; count?: number };
 
         if (!classId || !count || count < 1 || count > 50) {
             return NextResponse.json(
@@ -32,26 +29,27 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Class not found." }, { status: 404 });
         }
 
-        const generated: { id: string; code: string; className: string }[] = [];
+        // Generate all codes and hash them in parallel — no sequential awaits
+        const rawCodes = Array.from({ length: count }, () => nanoid());
+        const hashes = await Promise.all(rawCodes.map((code) => hashCouponCode(code)));
 
-        for (let i = 0; i < count; i++) {
-            const code = nanoid();
-            const codePrefix = extractCodePrefix(code);
-            const hashedCoupon = await hashCouponCode(code);
-            const coupon = await NoteCoupon.create({
-                classId,
-                codePrefix,
-                hashedCoupon,
-                couponType: "NOTE",
-                isUsed: false,
-                isActive: true,
-            });
-            generated.push({
-                id: coupon._id.toString(),
-                code,
-                className: targetClass.name,
-            });
-        }
+        const docs = rawCodes.map((code, i) => ({
+            classId,
+            codePrefix: extractCodePrefix(code),
+            hashedCoupon: hashes[i],
+            couponType: "NOTE" as const,
+            isUsed: false,
+            isActive: true,
+        }));
+
+        // Single round-trip to the DB instead of N sequential creates
+        const inserted = await NoteCoupon.insertMany(docs);
+
+        const generated = rawCodes.map((code, i) => ({
+            id: inserted[i]._id.toString(),
+            code,
+            className: targetClass.name,
+        }));
 
         return NextResponse.json({
             success: true,

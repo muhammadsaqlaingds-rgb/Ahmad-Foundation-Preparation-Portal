@@ -18,13 +18,11 @@ export async function POST(req: Request) {
             );
         }
 
-        const validMcqs: any[] = [];
+        // ── Pass 1: structural validation (no DB) ─────────────────────────────
         const seenQuestions = new Set<string>();
-
-        // Cache checks to prevent repetitive database calls
-        const classCache = new Map<string, boolean>();
-        const subjectCache = new Map<string, boolean>();
-        const testCache = new Map<string, boolean>();
+        const classIds = new Set<string>();
+        const subjectIds = new Set<string>();
+        const testIds = new Set<string>();
 
         for (let i = 0; i < mcqs.length; i++) {
             const item = mcqs[i];
@@ -36,22 +34,19 @@ export async function POST(req: Request) {
                     { status: 400 }
                 );
             }
-
             if (!options || !Array.isArray(options) || options.length !== 4) {
                 return NextResponse.json(
                     { success: false, message: `Item #${i + 1}: Exactly 4 options are required.` },
                     { status: 400 }
                 );
             }
-
             const cleanOptions = options.map((opt: any) => (opt ? String(opt).trim() : ""));
-            if (cleanOptions.some((opt) => opt.length === 0)) {
+            if (cleanOptions.some((opt: string) => opt.length === 0)) {
                 return NextResponse.json(
                     { success: false, message: `Item #${i + 1}: All 4 options must be non-empty strings.` },
                     { status: 400 }
                 );
             }
-
             if (
                 correctAnswer === undefined ||
                 correctAnswer === null ||
@@ -64,21 +59,18 @@ export async function POST(req: Request) {
                     { status: 400 }
                 );
             }
-
             if (!classId) {
                 return NextResponse.json(
                     { success: false, message: `Item #${i + 1}: Class ID is required.` },
                     { status: 400 }
                 );
             }
-
             if (!subjectId) {
                 return NextResponse.json(
                     { success: false, message: `Item #${i + 1}: Subject ID is required.` },
                     { status: 400 }
                 );
             }
-
             if (!testId) {
                 return NextResponse.json(
                     { success: false, message: `Item #${i + 1}: Test ID is required.` },
@@ -86,82 +78,85 @@ export async function POST(req: Request) {
                 );
             }
 
-            // Validate Class
-            let classExists = classCache.get(classId);
-            if (classExists === undefined) {
-                const parentClass = await Class.findOne({ _id: classId, isDeleted: { $ne: true } });
-                classExists = !!parentClass;
-                classCache.set(classId, classExists);
+            // Payload-level duplicate check (no DB needed)
+            const uniqKey = `${testId}::${question.trim().toLowerCase()}`;
+            if (seenQuestions.has(uniqKey)) {
+                return NextResponse.json(
+                    { success: false, message: `Item #${i + 1}: Duplicate question found in this bulk payload.` },
+                    { status: 409 }
+                );
             }
-            if (!classExists) {
+            seenQuestions.add(uniqKey);
+
+            classIds.add(classId);
+            subjectIds.add(subjectId);
+            testIds.add(testId);
+        }
+
+        // ── Pass 2: batch-validate all referenced IDs — 3 parallel queries ────
+        // Instead of N sequential findOne calls inside the loop, fetch all
+        // referenced documents in one $in query per collection.
+        const testIdArray = [...testIds];
+
+        const [validClasses, validSubjects, validTests, existingMcqs] = await Promise.all([
+            Class.find({ _id: { $in: [...classIds] }, isDeleted: { $ne: true } })
+                .select("_id").lean(),
+            Subject.find({ _id: { $in: [...subjectIds] }, isDeleted: { $ne: true } })
+                .select("_id").lean(),
+            Test.find({ _id: { $in: testIdArray }, isDeleted: { $ne: true } })
+                .select("_id").lean(),
+            // Fetch all existing questions for the referenced tests in one query
+            MCQ.find({
+                testId: { $in: testIdArray },
+                isDeleted: { $ne: true },
+            }).select("testId question").lean(),
+        ]);
+
+        const validClassSet = new Set(validClasses.map((c: any) => c._id.toString()));
+        const validSubjectSet = new Set(validSubjects.map((s: any) => s._id.toString()));
+        const validTestSet = new Set(validTests.map((t: any) => t._id.toString()));
+
+        // Build a Set of "testId::question_lower" for O(1) duplicate detection
+        const existingKeys = new Set(
+            existingMcqs.map((m: any) => `${m.testId.toString()}::${m.question.trim().toLowerCase()}`)
+        );
+
+        // ── Pass 3: per-item validation against pre-fetched sets ──────────────
+        const validMcqs: any[] = [];
+
+        for (let i = 0; i < mcqs.length; i++) {
+            const { question, options, correctAnswer, classId, subjectId, testId } = mcqs[i];
+            const normalizedQuestion = question.trim();
+
+            if (!validClassSet.has(classId)) {
                 return NextResponse.json(
                     { success: false, message: `Item #${i + 1}: Selected Class is invalid or deleted.` },
                     { status: 400 }
                 );
             }
-
-            // Validate Subject
-            let subjectExists = subjectCache.get(subjectId);
-            if (subjectExists === undefined) {
-                const parentSubject = await Subject.findOne({ _id: subjectId, isDeleted: { $ne: true } });
-                subjectExists = !!parentSubject;
-                subjectCache.set(subjectId, subjectExists);
-            }
-            if (!subjectExists) {
+            if (!validSubjectSet.has(subjectId)) {
                 return NextResponse.json(
                     { success: false, message: `Item #${i + 1}: Selected Subject is invalid or deleted.` },
                     { status: 400 }
                 );
             }
-
-            // Validate Test
-            let testExists = testCache.get(testId);
-            if (testExists === undefined) {
-                const parentTest = await Test.findOne({ _id: testId, isDeleted: { $ne: true } });
-                testExists = !!parentTest;
-                testCache.set(testId, testExists);
-            }
-            if (!testExists) {
+            if (!validTestSet.has(testId)) {
                 return NextResponse.json(
                     { success: false, message: `Item #${i + 1}: Selected Test is invalid or deleted.` },
                     { status: 400 }
                 );
             }
 
-            const normalizedQuestion = question.trim();
-            const uniqKey = `${testId}::${normalizedQuestion.toLowerCase()}`;
-
-            // Check payload duplicate
-            if (seenQuestions.has(uniqKey)) {
-                return NextResponse.json(
-                    { success: false, message: `Item #${i + 1}: Duplicate question found in this bulk payload.` },
-                    { status: 400 }
-                );
-            }
-            seenQuestions.add(uniqKey);
-
-            // Check database duplicate
-            const existing = await MCQ.findOne({
-                testId,
-                question: new RegExp(`^${normalizedQuestion.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&")}$`, "i"),
-                isDeleted: { $ne: true },
-            });
-
-            if (existing) {
+            const dbKey = `${testId}::${normalizedQuestion.toLowerCase()}`;
+            if (existingKeys.has(dbKey)) {
                 return NextResponse.json(
                     { success: false, message: `Item #${i + 1}: Question already exists in database under this test.` },
                     { status: 409 }
                 );
             }
 
-            validMcqs.push({
-                question: normalizedQuestion,
-                options: cleanOptions,
-                correctAnswer,
-                classId,
-                subjectId,
-                testId,
-            });
+            const cleanOptions = options.map((opt: any) => String(opt).trim());
+            validMcqs.push({ question: normalizedQuestion, options: cleanOptions, correctAnswer, classId, subjectId, testId });
         }
 
         const inserted = await MCQ.insertMany(validMcqs);
