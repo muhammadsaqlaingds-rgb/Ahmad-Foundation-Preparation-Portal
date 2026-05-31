@@ -5,10 +5,13 @@ import User from "@/models/User";
 
 const SESSION_COOKIE_NAME = "auth-token";
 
-if (!process.env.SESSION_SECRET) {
-    throw new Error("SESSION_SECRET environment variable is required but not set.");
+function getSessionSecret(): string {
+    const secret = process.env.SESSION_SECRET;
+    if (!secret) {
+        throw new Error("SESSION_SECRET environment variable is required but not set.");
+    }
+    return secret;
 }
-const SESSION_SECRET = process.env.SESSION_SECRET;
 
 /**
  * Hash a password using PBKDF2.
@@ -35,6 +38,7 @@ export function verifyPassword(password: string, salt: string, hash: string): bo
  * Generate a signed session token.
  */
 export function signToken(payload: Record<string, any>): string {
+    const SESSION_SECRET = getSessionSecret();
     const exp = Date.now() + 7 * 24 * 60 * 60 * 1000; // 7 days expiry
     const data = { ...payload, exp };
     const payloadStr = JSON.stringify(data);
@@ -52,6 +56,7 @@ export function signToken(payload: Record<string, any>): string {
  * Decode and verify a session token signature and expiration.
  */
 export function verifyToken(token: string): any {
+    const SESSION_SECRET = getSessionSecret();
     if (!token) return null;
     const parts = token.split(".");
     if (parts.length !== 2) return null;

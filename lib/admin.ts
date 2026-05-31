@@ -7,15 +7,19 @@ import Admin from "@/models/Admin";
 
 const ADMIN_COOKIE_NAME = "admin-session";
 
-if (!process.env.ADMIN_SESSION_SECRET && !process.env.SESSION_SECRET) {
-    throw new Error(
-        "ADMIN_SESSION_SECRET (or SESSION_SECRET) environment variable is required but not set."
-    );
+function getAdminSecret(): string {
+    const secret = process.env.ADMIN_SESSION_SECRET || process.env.SESSION_SECRET;
+    if (!secret) {
+        throw new Error(
+            "ADMIN_SESSION_SECRET (or SESSION_SECRET) environment variable is required but not set."
+        );
+    }
+    return secret;
 }
-const ADMIN_SECRET = (process.env.ADMIN_SESSION_SECRET || process.env.SESSION_SECRET) as string;
 
 /** Sign a small payload into a tamper-proof token. */
 function signAdminToken(payload: Record<string, unknown>): string {
+    const ADMIN_SECRET = getAdminSecret();
     const exp = Date.now() + 8 * 60 * 60 * 1000; // 8-hour session
     const data = Buffer.from(JSON.stringify({ ...payload, exp })).toString("base64url");
     const sig = crypto
@@ -27,6 +31,7 @@ function signAdminToken(payload: Record<string, unknown>): string {
 
 /** Verify and decode an admin token. Returns null if invalid or expired. */
 function verifyAdminToken(token: string): Record<string, unknown> | null {
+    const ADMIN_SECRET = getAdminSecret();
     if (!token) return null;
     const parts = token.split(".");
     if (parts.length !== 2) return null;
