@@ -6,10 +6,13 @@ import Admin from "@/models/Admin";
 // ─── Admin Session Cookie ────────────────────────────────────────────────────
 
 const ADMIN_COOKIE_NAME = "admin-session";
-const ADMIN_SECRET =
-    process.env.ADMIN_SESSION_SECRET ||
-    process.env.SESSION_SECRET ||
-    "ahmad-foundation-admin-fallback-secret-2026";
+
+if (!process.env.ADMIN_SESSION_SECRET && !process.env.SESSION_SECRET) {
+    throw new Error(
+        "ADMIN_SESSION_SECRET (or SESSION_SECRET) environment variable is required but not set."
+    );
+}
+const ADMIN_SECRET = (process.env.ADMIN_SESSION_SECRET || process.env.SESSION_SECRET) as string;
 
 /** Sign a small payload into a tamper-proof token. */
 function signAdminToken(payload: Record<string, unknown>): string {

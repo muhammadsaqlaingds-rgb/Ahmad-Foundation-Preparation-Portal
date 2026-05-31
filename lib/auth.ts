@@ -4,7 +4,11 @@ import connectToDatabase from "@/lib/mongodb";
 import User from "@/models/User";
 
 const SESSION_COOKIE_NAME = "auth-token";
-const SESSION_SECRET = process.env.SESSION_SECRET || "ahmad-foundation-secure-fallback-secret-2026";
+
+if (!process.env.SESSION_SECRET) {
+    throw new Error("SESSION_SECRET environment variable is required but not set.");
+}
+const SESSION_SECRET = process.env.SESSION_SECRET;
 
 /**
  * Hash a password using PBKDF2.
