@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
 import Note from "@/models/Note";
 import { put } from "@vercel/blob";
+import { requireAdmin } from "@/lib/admin";
 
 // Helper to sanitize filenames — replaces URL-unsafe characters with underscores
 function sanitizeFilename(name: string): string {
@@ -10,6 +11,8 @@ function sanitizeFilename(name: string): string {
 
 /** POST /api/admin/notes */
 export async function POST(req: Request) {
+  const auth = await requireAdmin();
+  if (!auth.authorized) return auth.response;
   try {
     // ✅ STEP 1: Check BLOB token exists
     const token = process.env.BLOB_READ_WRITE_TOKEN;
@@ -102,6 +105,8 @@ import "@/models/Subject";
 
 /** GET /api/admin/notes */
 export async function GET() {
+  const auth = await requireAdmin();
+  if (!auth.authorized) return auth.response;
   try {
     await connectToDatabase();
     const notes = await Note.find({ isDeleted: { $ne: true } })
@@ -118,6 +123,8 @@ export async function GET() {
 
 /** PUT /api/admin/notes/:id */
 export async function PUT(req: Request) {
+  const auth = await requireAdmin();
+  if (!auth.authorized) return auth.response;
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
@@ -134,6 +141,8 @@ export async function PUT(req: Request) {
 
 /** DELETE /api/admin/notes/:id */
 export async function DELETE(req: Request) {
+  const auth = await requireAdmin();
+  if (!auth.authorized) return auth.response;
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");

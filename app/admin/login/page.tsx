@@ -32,8 +32,6 @@ export default function AdminLoginPage() {
                 return;
             }
 
-            localStorage.setItem("adminLoggedIn", "true");
-
             router.push("/admin/dashboard");
         } catch (err) {
             console.error(err);

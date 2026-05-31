@@ -3,8 +3,11 @@ import connectToDatabase from "@/lib/mongodb";
 import ClassAccess from "@/models/ClassAccess";
 import "@/models/User";
 import "@/models/Class";
+import { requireAdmin } from "@/lib/admin";
 
 export async function GET() {
+    const auth = await requireAdmin();
+    if (!auth.authorized) return auth.response;
     try {
         await connectToDatabase();
 
@@ -25,6 +28,8 @@ export async function GET() {
 }
 
 export async function PUT(req: Request) {
+    const auth = await requireAdmin();
+    if (!auth.authorized) return auth.response;
     try {
         await connectToDatabase();
         const body = await req.json();

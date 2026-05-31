@@ -3,8 +3,11 @@ import connectToDatabase from "@/lib/mongodb";
 import Test from "@/models/Test";
 import Class from "@/models/Class";
 import Subject from "@/models/Subject";
+import { requireAdmin } from "@/lib/admin";
 
 export async function GET(req: Request) {
+    const auth = await requireAdmin();
+    if (!auth.authorized) return auth.response;
     try {
         await connectToDatabase();
         const { searchParams } = new URL(req.url);
@@ -43,6 +46,8 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+    const auth = await requireAdmin();
+    if (!auth.authorized) return auth.response;
     try {
         await connectToDatabase();
         const body = await req.json();

@@ -3,8 +3,11 @@ import connectToDatabase from "@/lib/mongodb";
 import Coupon from "@/models/Coupon";
 import Class from "@/models/Class";
 import { generateCouponCode, hashCouponCode } from "@/lib/coupon-code";
+import { requireAdmin } from "@/lib/admin";
 
 export async function POST(req: Request) {
+    const auth = await requireAdmin();
+    if (!auth.authorized) return auth.response;
     try {
         const body = await req.json();
         const { classId, count = 1 } = body as { classId?: string; count?: number };

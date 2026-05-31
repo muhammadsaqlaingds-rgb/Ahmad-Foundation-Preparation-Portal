@@ -18,17 +18,20 @@ export default function AdminShell({ title, subtitle, children }: AdminShellProp
     const [isOpen, setIsOpen] = useState(false);
 
     useEffect(() => {
-        const isLoggedIn = localStorage.getItem("adminLoggedIn");
-        if (isLoggedIn !== "true") {
-            router.push("/admin/login");
-        } else {
-            setAuthorized(true);
-        }
-        setLoading(false);
+        fetch("/api/admin/me")
+            .then((res) => {
+                if (res.ok) {
+                    setAuthorized(true);
+                } else {
+                    router.push("/admin/login");
+                }
+            })
+            .catch(() => router.push("/admin/login"))
+            .finally(() => setLoading(false));
     }, [router]);
 
-    const handleLogout = () => {
-        localStorage.removeItem("adminLoggedIn");
+    const handleLogout = async () => {
+        await fetch("/api/admin/logout", { method: "POST" });
         router.push("/admin/login");
     };
 

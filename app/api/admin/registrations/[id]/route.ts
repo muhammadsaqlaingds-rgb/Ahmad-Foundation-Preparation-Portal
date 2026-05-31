@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
 import TestSubmission from "@/models/TestSubmission";
+import { requireAdmin } from "@/lib/admin";
 
 type Params = {
     params: Promise<{
@@ -12,6 +13,8 @@ export async function DELETE(
     _req: Request,
     { params }: Params
 ) {
+    const auth = await requireAdmin();
+    if (!auth.authorized) return auth.response;
     try {
         await connectToDatabase();
         const { id } = await params;

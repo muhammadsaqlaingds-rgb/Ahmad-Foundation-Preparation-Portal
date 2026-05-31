@@ -3,8 +3,11 @@ import connectToDatabase from "@/lib/mongodb";
 import Coupon from "@/models/Coupon";
 import "@/models/Class";
 import "@/models/User";
+import { requireAdmin } from "@/lib/admin";
 
 export async function GET() {
+    const auth = await requireAdmin();
+    if (!auth.authorized) return auth.response;
     try {
         await connectToDatabase();
 

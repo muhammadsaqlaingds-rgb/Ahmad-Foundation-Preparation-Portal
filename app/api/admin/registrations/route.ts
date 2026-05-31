@@ -6,8 +6,11 @@ import "@/models/User";
 import "@/models/Class";
 import "@/models/Subject";
 import "@/models/Test";
+import { requireAdmin } from "@/lib/admin";
 
 export async function GET() {
+    const auth = await requireAdmin();
+    if (!auth.authorized) return auth.response;
     try {
         await connectToDatabase();
         

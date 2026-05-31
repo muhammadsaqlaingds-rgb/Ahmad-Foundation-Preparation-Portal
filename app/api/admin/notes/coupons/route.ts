@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
 import NoteCoupon from "@/models/NoteCoupon";
+import { requireAdmin } from "@/lib/admin";
 
 export async function GET() {
+    const auth = await requireAdmin();
+    if (!auth.authorized) return auth.response;
     try {
         await connectToDatabase();
         const coupons = await NoteCoupon.find()

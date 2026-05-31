@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
 import NoteCoupon from "@/models/NoteCoupon";
+import { requireAdmin } from "@/lib/admin";
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+    const auth = await requireAdmin();
+    if (!auth.authorized) return auth.response;
     try {
         const { id } = await params;
         await connectToDatabase();
@@ -23,6 +26,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 }
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+    const auth = await requireAdmin();
+    if (!auth.authorized) return auth.response;
     try {
         const { id } = await params;
         await connectToDatabase();

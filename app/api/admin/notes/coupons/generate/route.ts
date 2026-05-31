@@ -4,10 +4,13 @@ import NoteCoupon from "@/models/NoteCoupon";
 import Class from "@/models/Class";
 import bcrypt from "bcryptjs";
 import { customAlphabet } from "nanoid";
+import { requireAdmin } from "@/lib/admin";
 
 const nanoid = customAlphabet("ABCDEFGHJKLMNPQRSTUVWXYZ23456789", 10);
 
 export async function POST(req: Request) {
+    const auth = await requireAdmin();
+    if (!auth.authorized) return auth.response;
     try {
         const body = await req.json();
         const { classId, count } = body as {

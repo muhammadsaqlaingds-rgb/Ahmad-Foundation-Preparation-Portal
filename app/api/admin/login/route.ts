@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { ensureAdminFromEnv, validateAdminCredentials } from "@/lib/admin";
+import { ensureAdminFromEnv, validateAdminCredentials, setAdminSessionCookie } from "@/lib/admin";
 
 export async function POST(req: Request) {
     try {
@@ -29,6 +29,8 @@ export async function POST(req: Request) {
                 { status: 401 }
             );
         }
+
+        await setAdminSessionCookie();
 
         return NextResponse.json({ success: true }, { status: 200 });
     } catch (error) {

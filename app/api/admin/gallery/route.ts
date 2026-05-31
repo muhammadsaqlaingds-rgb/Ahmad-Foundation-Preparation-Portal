@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
 import GalleryAsset from "@/models/GalleryAsset";
+import { requireAdmin } from "@/lib/admin";
 
 export async function GET(req: Request) {
+    const auth = await requireAdmin();
+    if (!auth.authorized) return auth.response;
     try {
         await connectToDatabase();
         const url = new URL(req.url);
@@ -31,6 +34,8 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+    const auth = await requireAdmin();
+    if (!auth.authorized) return auth.response;
     try {
         await connectToDatabase();
         const body = await req.json();

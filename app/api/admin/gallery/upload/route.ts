@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
+import { requireAdmin } from "@/lib/admin";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
+    const auth = await requireAdmin();
+    if (!auth.authorized) return auth.response;
     try {
         const formData = await req.formData();
         const file = formData.get("file") as File | null;

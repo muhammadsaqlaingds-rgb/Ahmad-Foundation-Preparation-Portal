@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
 import Course from "@/models/Course";
+import { requireAdmin } from "@/lib/admin";
 
 type Params = {
     params: Promise<{
@@ -9,6 +10,8 @@ type Params = {
 };
 
 export async function PUT(req: Request, { params }: Params) {
+    const auth = await requireAdmin();
+    if (!auth.authorized) return auth.response;
     try {
         await connectToDatabase();
         const { id } = await params;
@@ -60,6 +63,8 @@ export async function PUT(req: Request, { params }: Params) {
 }
 
 export async function DELETE(_req: Request, { params }: Params) {
+    const auth = await requireAdmin();
+    if (!auth.authorized) return auth.response;
     try {
         await connectToDatabase();
         const { id } = await params;
