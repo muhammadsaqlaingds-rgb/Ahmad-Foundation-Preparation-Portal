@@ -4,6 +4,7 @@ import Coupon from "@/models/Coupon";
 import ClassAccess from "@/models/ClassAccess";
 import Class from "@/models/Class";
 import { getCurrentUser } from "@/lib/auth";
+import { extractCodePrefix } from "@/lib/coupon-code";
 
 export async function POST(req: Request) {
     try {
@@ -36,9 +37,13 @@ export async function POST(req: Request) {
             });
         }
 
-        // ── Step 1: fetch candidates (read-only, no mutation) ─────────────────
-        const candidates = await Coupon.find({
+        // ── Step 1: use codePrefix index to fetch exactly ONE candidate ───────
+        // Instead of loading all unused coupons and looping bcrypt over them,
+        // we query by the indexed prefix — O(log n) instead of O(n * bcrypt).
+        const codePrefix = extractCodePrefix(trimmedCode);
+        const candidate = await Coupon.findOne({
             classId,
+            codePrefix,
             isUsed: false,
             isActive: true,
             $or: [
@@ -47,27 +52,16 @@ export async function POST(req: Request) {
             ],
         }).select("_id hashedCoupon");
 
-        // ── Step 2: find the matching coupon via bcrypt ───────────────────────
-        let matchedId: string | null = null;
-        for (const coupon of candidates) {
-            if (await coupon.compare(trimmedCode)) {
-                matchedId = coupon._id.toString();
-                break;
-            }
-        }
-
-        if (!matchedId) {
+        if (!candidate || !(await candidate.compare(trimmedCode))) {
             return NextResponse.json(
                 { error: "Invalid or expired TEST coupon code. Note coupons cannot be used for tests." },
                 { status: 400 }
             );
         }
 
-        // ── Step 3: atomically claim the coupon ───────────────────────────────
-        // The filter includes isUsed: false — if a concurrent request already
-        // claimed it between steps 1 and 3, this returns null and we reject.
+        // ── Step 2: atomically claim — guards against concurrent redemption ───
         const claimed = await Coupon.findOneAndUpdate(
-            { _id: matchedId, isUsed: false, isActive: true },
+            { _id: candidate._id, isUsed: false, isActive: true },
             { $set: { isUsed: true, usedBy: user._id, usedAt: new Date() } },
             { new: true }
         );
@@ -79,7 +73,7 @@ export async function POST(req: Request) {
             );
         }
 
-        // ── Step 4: grant class access ────────────────────────────────────────
+        // ── Step 3: grant class access ────────────────────────────────────────
         if (existing) {
             existing.status = "approved";
             existing.paymentMethod = "coupon";

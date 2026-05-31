@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
 import NoteCoupon from "@/models/NoteCoupon";
 import Class from "@/models/Class";
-import bcrypt from "bcryptjs";
 import { customAlphabet } from "nanoid";
+import { hashCouponCode, extractCodePrefix } from "@/lib/coupon-code";
 import { requireAdmin } from "@/lib/admin";
 
 const nanoid = customAlphabet("ABCDEFGHJKLMNPQRSTUVWXYZ23456789", 10);
@@ -36,11 +36,13 @@ export async function POST(req: Request) {
 
         for (let i = 0; i < count; i++) {
             const code = nanoid();
-            const hashedCoupon = await bcrypt.hash(code, 10);
+            const codePrefix = extractCodePrefix(code);
+            const hashedCoupon = await hashCouponCode(code);
             const coupon = await NoteCoupon.create({
                 classId,
+                codePrefix,
                 hashedCoupon,
-                couponType: "NOTE", // Explicitly set as NOTE coupon
+                couponType: "NOTE",
                 isUsed: false,
                 isActive: true,
             });

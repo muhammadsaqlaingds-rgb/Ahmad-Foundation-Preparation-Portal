@@ -4,6 +4,7 @@ import NoteCoupon from "@/models/NoteCoupon";
 import NoteClassAccess from "@/models/NoteClassAccess";
 import Class from "@/models/Class";
 import { getCurrentUser } from "@/lib/auth";
+import { extractCodePrefix } from "@/lib/coupon-code";
 
 export async function POST(req: Request) {
     try {
@@ -36,32 +37,38 @@ export async function POST(req: Request) {
             });
         }
 
-        // Find note coupons for this class (any subject)
-        const candidates = await NoteCoupon.find({
+        // ── Step 1: use codePrefix index to fetch exactly ONE candidate ───────
+        const codePrefix = extractCodePrefix(trimmedCode);
+        const candidate = await NoteCoupon.findOne({
             classId,
+            codePrefix,
             isUsed: false,
             isActive: true,
-            couponType: "NOTE", // Only allow NOTE coupons for note access
-        });
+            couponType: "NOTE",
+        }).select("_id hashedCoupon");
 
-        let matched: (typeof candidates)[number] | null = null;
-        for (const coupon of candidates) {
-            const isMatch = await coupon.compare(trimmedCode);
-            if (isMatch) {
-                matched = coupon;
-                break;
-            }
+        if (!candidate || !(await candidate.compare(trimmedCode))) {
+            return NextResponse.json(
+                { error: "Invalid or expired NOTE coupon code. Test coupons cannot be used for notes." },
+                { status: 400 }
+            );
         }
 
-        if (!matched) {
-            return NextResponse.json({ error: "Invalid or expired NOTE coupon code. Test coupons cannot be used for notes." }, { status: 400 });
+        // ── Step 2: atomically claim — guards against concurrent redemption ───
+        const claimed = await NoteCoupon.findOneAndUpdate(
+            { _id: candidate._id, isUsed: false, isActive: true },
+            { $set: { isUsed: true, usedBy: user._id, usedAt: new Date() } },
+            { new: true }
+        );
+
+        if (!claimed) {
+            return NextResponse.json(
+                { error: "This coupon has already been used. Please try a different code." },
+                { status: 409 }
+            );
         }
 
-        matched.isUsed = true;
-        matched.usedBy = user._id;
-        matched.usedAt = new Date();
-        await matched.save();
-
+        // ── Step 3: grant class-level note access ─────────────────────────────
         if (existing) {
             existing.status = "approved";
             existing.paymentMethod = "coupon";

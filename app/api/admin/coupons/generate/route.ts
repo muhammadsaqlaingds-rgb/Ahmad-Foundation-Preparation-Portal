@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
 import Coupon from "@/models/Coupon";
 import Class from "@/models/Class";
-import { generateCouponCode, hashCouponCode } from "@/lib/coupon-code";
+import { generateCouponCode, hashCouponCode, extractCodePrefix } from "@/lib/coupon-code";
 import { requireAdmin } from "@/lib/admin";
 
 export async function POST(req: Request) {
@@ -30,11 +30,13 @@ export async function POST(req: Request) {
 
         for (let i = 0; i < num; i++) {
             const code = generateCouponCode();
+            const codePrefix = extractCodePrefix(code);
             const hashedCoupon = await hashCouponCode(code);
             const doc = await Coupon.create({
                 classId,
+                codePrefix,
                 hashedCoupon,
-                couponType: "TEST", // Explicitly set as TEST coupon
+                couponType: "TEST",
                 isUsed: false,
                 isActive: true,
             });

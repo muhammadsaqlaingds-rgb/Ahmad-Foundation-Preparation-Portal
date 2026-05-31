@@ -4,6 +4,10 @@ import bcrypt from "bcryptjs";
 const CouponSchema = new Schema(
     {
         classId: { type: Schema.Types.ObjectId, ref: "Class", required: true },
+        // First 8 chars of the raw code stored in plaintext for fast indexed lookup.
+        // This is NOT a secret — it just narrows the query to one document so we
+        // only run bcrypt.compare() once instead of scanning the whole collection.
+        codePrefix: { type: String, required: true, index: true },
         hashedCoupon: { type: String, required: true },
         couponType: { type: String, enum: ["TEST"], default: "TEST" }, // Explicitly for TEST only
         isUsed: { type: Boolean, default: false },
@@ -13,6 +17,9 @@ const CouponSchema = new Schema(
     },
     { timestamps: true }
 );
+
+// Compound index: classId + codePrefix + isUsed covers the redemption query exactly
+CouponSchema.index({ classId: 1, codePrefix: 1, isUsed: 1 });
 
 CouponSchema.methods.compare = function (raw: string) {
     return bcrypt.compare(raw, this.hashedCoupon);

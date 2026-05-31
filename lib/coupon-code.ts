@@ -11,6 +11,15 @@ export function generateCouponCode(): string {
     return `AF-${suffix}`;
 }
 
+/**
+ * Extract the indexed prefix from a raw coupon code.
+ * Stored in plaintext so we can query a single document before running bcrypt.
+ * Using 8 chars gives 32^8 ≈ 1 trillion combinations — not guessable.
+ */
+export function extractCodePrefix(raw: string): string {
+    return raw.trim().toUpperCase().slice(0, 8);
+}
+
 export async function hashCouponCode(raw: string): Promise<string> {
     return bcrypt.hash(raw.trim().toUpperCase(), 10);
 }
